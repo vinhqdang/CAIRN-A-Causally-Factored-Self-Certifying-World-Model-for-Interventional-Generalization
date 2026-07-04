@@ -1,0 +1,61 @@
+{
+  "delta": 0.05,
+  "detectors": {
+    "cusum": {
+      "localization_f1": 0.55,
+      "localization_precision": 0.4699999999999999,
+      "localization_recall": 0.85,
+      "mean_delay": 99.1,
+      "median_delay": 2.0
+    },
+    "egate": {
+      "localization_f1": 0.8133333333333332,
+      "localization_precision": 0.7666666666666667,
+      "localization_recall": 0.9,
+      "mean_delay": 116.6,
+      "median_delay": 16.5
+    },
+    "egate_oracle_graph": {
+      "localization_f1": 0.9,
+      "localization_precision": 0.9,
+      "localization_recall": 0.9,
+      "mean_delay": 135.0,
+      "median_delay": 17.5
+    },
+    "ensemble": {
+      "localization_f1": 0.36150793650793644,
+      "localization_precision": 0.28011904761904766,
+      "localization_recall": 0.8,
+      "mean_delay": 142.1,
+      "median_delay": 22.0
+    }
+  },
+  "global_egate_median_delay": 900.0,
+  "note": "CUSUM/ensemble thresholds oracle-tuned on null streams; e-gates use delta=0.05 with no tuning. egate rows use the deployment-refit models with sliding-holdout maintenance.",
+  "null": {
+    "cusum": {
+      "alarm_fraction": 0.4583333333333333,
+      "unit": "per-gate"
+    },
+    "egate": {
+      "alarm_fraction": 0.0,
+      "unit": "per-gate"
+    },
+    "egate_oracle_graph": {
+      "alarm_fraction": 0.0,
+      "unit": "per-gate"
+    },
+    "ensemble": {
+      "alarm_fraction": 0.20833333333333334,
+      "unit": "per-gate"
+    },
+    "global_egate": {
+      "alarm_fraction": 0.0,
+      "unit": "per-stream"
+    }
+  },
+  "null_stream_steps": 6000,
+  "oracle_null_alarm_fraction": 0.0,
+  "oracle_null_stream_steps": 6000,
+  "oracle_null_streams": 16
+}
