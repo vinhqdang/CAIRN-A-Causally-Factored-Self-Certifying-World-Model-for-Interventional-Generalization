@@ -59,6 +59,26 @@ def test_detection_power_under_overdispersion():
     assert fired_at is not None and fired_at < 500
 
 
+def test_tolerance_null_absorbs_small_bias_but_detects_shifts():
+    """With tolerance eps, PIT distributions with |E g| <= eps (small
+    approximation bias) must not accumulate wealth, while strong shifts
+    must still alarm quickly."""
+    rng = np.random.default_rng(5)
+    # Small location bias: E[2U-1] ~ 0.05 < eps = 0.15.
+    gate = EGate(0.05, eps=0.15)
+    for _ in range(20000):
+        gate.update(float(rng.beta(1.105, 1.0)))
+    assert not gate.alarmed and gate.log_wealth < 1.0
+    # Strong shift: E[2U-1] ~ 0.43 >> eps.
+    gate = EGate(0.05, eps=0.15)
+    fired_at = None
+    for t in range(2000):
+        if gate.update(float(rng.beta(3.0, 1.2))):
+            fired_at = t + 1
+            break
+    assert fired_at is not None and fired_at < 400
+
+
 def test_ons_lambda_bounded():
     proc = EProcess(_g_location)
     rng = np.random.default_rng(4)

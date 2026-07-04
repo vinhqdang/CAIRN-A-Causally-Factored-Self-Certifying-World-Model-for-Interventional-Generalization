@@ -33,6 +33,7 @@ class CairnWorldModel(nn.Module):
     """
 
     def __init__(self, d: int, m: int, hidden: int = 48, delta: float = 0.05,
+                 gate_eps: float = 0.15,
                  beta: float = 1.0, inflation_scale: float = 1.0):
         super().__init__()
         self.d, self.m = d, m
@@ -43,7 +44,9 @@ class CairnWorldModel(nn.Module):
             [MechanismMLP(d, m, hidden) for _ in range(d)])
         self.libraries = [NodeLibrary(f, beta=beta)
                           for f in self.base_mechanisms]
-        self.gates = GateBank(d, delta)
+        # gate_eps: tolerance of the composite gate null (|E g| <= eps),
+        # absorbing quantile-head approximation error; see cairn/egate.py.
+        self.gates = GateBank(d, delta, eps=gate_eps)
         self.calibrators: list[PitCalibrator | None] = [None] * d
         self._last_raw_pits: list[float] = [0.5] * d
 

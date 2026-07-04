@@ -38,16 +38,30 @@ def _g_dispersion(u: float) -> float:
 
 
 class EProcess:
-    """A single betting e-process with ONS-adapted bets."""
+    """A single betting e-process with ONS-adapted bets and a tolerance
+    (composite) null.
 
-    def __init__(self, g):
+    With tolerance ``eps`` the per-step payoff is g(u) - eps * sign(lam),
+    so the wealth is a supermartingale under ANY PIT distribution with
+    |E g(U)| <= eps — not just exact uniformity.  Ville's inequality then
+    holds for the composite null "mechanism approximately valid", which is
+    the operationally meaningful null when the quantile heads carry
+    irreducible approximation error (algorithm.md 5.5): a learned model
+    with small residual bias never accumulates wealth, while a genuine
+    mechanism shift (|E g| >> eps) is still detected within O(1/(Eg-eps))
+    steps.  eps=0 recovers the exact-uniformity null."""
+
+    def __init__(self, g, eps: float = 0.0):
         self.g = g
+        self.eps = eps
         self.log_wealth = 0.0
         self.lam = 0.0
         self._grad_sq_sum = 1.0  # ONS second-order accumulator (A_0 = 1)
 
     def update(self, u: float) -> None:
-        g = self.g(u)
+        sign = 1.0 if self.lam > 0 else (-1.0 if self.lam < 0 else 0.0)
+        g = self.g(u) - self.eps * sign
+        g = max(-1.0 - self.eps, min(1.0 + self.eps, g))
         self.log_wealth = min(self.log_wealth + math.log1p(self.lam * g),
                               _LOG_WEALTH_CAP)
         # ONS ascent step on log(1 + lam * g).
@@ -70,9 +84,11 @@ class EGate:
     so the Ville threshold 1/delta applies unchanged.
     """
 
-    def __init__(self, delta: float = 0.05):
+    def __init__(self, delta: float = 0.05, eps: float = 0.0):
         self.delta = delta
-        self.procs = [EProcess(_g_location), EProcess(_g_dispersion)]
+        self.eps = eps
+        self.procs = [EProcess(_g_location, eps),
+                      EProcess(_g_dispersion, eps)]
         self.steps = 0
 
     @property
@@ -108,10 +124,12 @@ class GateBank:
     member currently monitored).
     """
 
-    def __init__(self, d: int, delta: float = 0.05):
+    def __init__(self, d: int, delta: float = 0.05, eps: float = 0.0):
         self.d = d
         self.delta = delta
-        self.gates: list[list[EGate]] = [[EGate(delta)] for _ in range(d)]
+        self.eps = eps
+        self.gates: list[list[EGate]] = [[EGate(delta, eps)]
+                                         for _ in range(d)]
 
     def active(self, i: int) -> EGate:
         """Gate of the most recently spawned member at node i."""
@@ -122,7 +140,7 @@ class GateBank:
         an evicted member first so gates stay aligned with the library."""
         if dropped is not None:
             self.gates[i].pop(dropped)
-        gate = EGate(self.delta)
+        gate = EGate(self.delta, self.eps)
         self.gates[i].append(gate)
         return gate
 
