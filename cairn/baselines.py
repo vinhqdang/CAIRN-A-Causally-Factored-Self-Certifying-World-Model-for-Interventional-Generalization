@@ -127,9 +127,9 @@ class GlobalEGate:
     say *where* — the ablation isolating why localization requires
     structure."""
 
-    def __init__(self, model, delta: float = 0.05):
+    def __init__(self, model, delta: float = 0.05, eps: float = 0.3):
         self.model = model
-        self.gate = EGate(delta)
+        self.gate = EGate(delta, eps=eps)
         self.calibrators = [None] * model.d
 
     @torch.no_grad()
