@@ -6,7 +6,7 @@ number of post-shift samples $n$, evaluated on the shifted variables
 stream and the same gradient budget. Full fine-tuning suffers catastrophic
 interference on the seven healthy mechanisms; the evidence-triggered
 localized refit leaves them untouched.}\label{tab:rq3}
-\small\setlength{\tabcolsep}{3pt}%
+\footnotesize\setlength{\tabcolsep}{2.5pt}%
 \begin{tabular}{lllcccccc}
 \toprule
 Shift & Method & Nodes & $n{=}0$ & $n{=}25$ & $n{=}50$ & $n{=}100$ & $n{=}200$ & $n{=}400$\\
@@ -24,6 +24,6 @@ $S{=}\{3,5\}$ & CAIRN full fine-tune & shifted & 1.495 & 0.576 & 2.584 & 2.152 &
  &  & all & 0.771 & 0.828 & 1.552 & 1.915 & 1.622 & 1.039 \\
 $S{=}\{3,5\}$ & Monolithic fine-tune & shifted & 1.460 & 1.495 & 1.179 & 1.413 & 2.108 & 2.330 \\
  &  & all & 0.802 & 1.343 & 2.507 & 2.936 & 2.396 & 2.260 \\
-\botrule
+\bottomrule
 \end{tabular}
 \end{table}

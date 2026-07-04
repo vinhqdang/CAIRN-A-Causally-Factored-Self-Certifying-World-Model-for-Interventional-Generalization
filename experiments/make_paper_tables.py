@@ -72,13 +72,13 @@ non-descendants of the intervened variable, and the no-intervention
 reference error of the same non-descendant set. A structurally correct
 model must leave non-descendants unchanged, so its non-descendant column
 must match the reference column.}\label{tab:rq1}
-\small\setlength{\tabcolsep}{3.5pt}%
+\footnotesize\setlength{\tabcolsep}{3pt}%
 \begin{tabular}{llcccccc}
 \toprule
 Targets & Model & $h{=}1$ & $h{=}3$ & $h{=}5$ & desc.\ & non-desc.\ & ref.\\
 \midrule
 """ + body + r"""
-\botrule
+\bottomrule
 \end{tabular}
 \end{table}
 """)
@@ -126,13 +126,13 @@ environment conditional) produced an alarm fraction of
 $""" + f"{r['oracle_null_alarm_fraction']:.4f}" + r"""$, consistent with
 Proposition~\ref{prop:validity}. $^{\ast}$per stream rather than per gate.}
 \label{tab:rq2}
-\small\setlength{\tabcolsep}{4pt}%
+\footnotesize\setlength{\tabcolsep}{3.5pt}%
 \begin{tabular}{lccc}
 \toprule
 Detector & Null alarm fraction & Median delay & Localization $F_1$\\
 \midrule
 """ + "\n".join(null_rows) + r"""
-\botrule
+\bottomrule
 \end{tabular}
 \end{table}
 """)
@@ -167,13 +167,13 @@ number of post-shift samples $n$, evaluated on the shifted variables
 stream and the same gradient budget. Full fine-tuning suffers catastrophic
 interference on the seven healthy mechanisms; the evidence-triggered
 localized refit leaves them untouched.}\label{tab:rq3}
-\small\setlength{\tabcolsep}{3pt}%
+\footnotesize\setlength{\tabcolsep}{2.5pt}%
 \begin{tabular}{lllcccccc}
 \toprule
 Shift & Method & Nodes & """ + head + r"""\\
 \midrule
 """ + "\n".join(rows[:-1]) + r"""
-\botrule
+\bottomrule
 \end{tabular}
 \end{table}
 """)
@@ -211,12 +211,13 @@ intervals by horizon. In-distribution rows average over all variables;
 shift rows are scored on the shifted mechanism's variable when available
 (all-node averages otherwise), where interval honesty is actually at
 stake.}\label{tab:rq4}
+\footnotesize\setlength{\tabcolsep}{4pt}%
 \begin{tabular}{llcccc}
 \toprule
 Condition & Scope & """ + " & ".join(f"$h{{=}}{h}$" for h in hs) + r"""\\
 \midrule
 """ + "\n".join(rows) + r"""
-\botrule
+\bottomrule
 \end{tabular}
 \end{table}
 """)
@@ -238,7 +239,7 @@ regimes grows.}\label{tab:rq6}
 Regimes & SHD$(A)$ & $F_1(A)$ & SHD$(M)$ & $F_1(M)$\\
 \midrule
 """ + "\n".join(rows) + r"""
-\botrule
+\bottomrule
 \end{tabular}
 \end{table}
 """)

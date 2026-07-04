@@ -1,11 +1,10 @@
-%% CAIRN manuscript — Elsevier elsarticle (Artificial Intelligence).
+%% CAIRN manuscript — Springer Nature sn-jnl, sn-mathphys-num style.
 %% Build: pdflatex main && bibtex main && pdflatex main && pdflatex main
-%% AIJ review is single-blind; flip \anontrue only if a blinded copy is needed.
+%% Anonymity: flip \anontrue / \anonfalse below.
 
-\documentclass[preprint,12pt]{elsarticle}
+\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}
 
 \usepackage{graphicx}
-\usepackage{xurl}
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{booktabs}
 \usepackage{algorithm}
@@ -14,15 +13,14 @@
 \usetikzlibrary{arrows.meta,positioning,fit,calc}
 
 \newif\ifanon
-\anonfalse % AIJ is single-blind: authors visible by default
+\anontrue % review version; set \anonfalse for the camera-ready copy
 
+\theoremstyle{thmstyleone}
 \newtheorem{proposition}{Proposition}
 \newtheorem{lemma}{Lemma}
-\theoremstyle{definition}
+\theoremstyle{thmstylethree}
 \newtheorem{assumption}{Assumption}
-\theoremstyle{remark}
 \newtheorem{remark}{Remark}
-\newcommand{\botrule}{\bottomrule}
 
 \newcommand{\dt}{\mathrm{do}}
 \newcommand{\E}{\mathbb{E}}
@@ -33,27 +31,20 @@
 \newcommand{\Lcal}{\mathcal{L}^{\mathrm{cal}}}
 
 \raggedbottom
-\emergencystretch=1.2em
 
 \begin{document}
 
-\begin{frontmatter}
-
-\title{CAIRN: A causally-factored, self-certifying world model for interventional generalization}
+\title[CAIRN: A Causally-Factored, Self-Certifying World Model]{CAIRN: A causally-factored, self-certifying world model for interventional generalization}
 
 \ifanon
-\author{Anonymous Author}
-\affiliation{organization={Anonymous Institution}}
+\author*[1]{\fnm{Anonymous} \sur{Author}}\email{anonymous@review.org}
+\affil*[1]{\orgname{Anonymous Institution}}
 \else
-\author[buv]{Quang-Vinh Dang\corref{cor1}}
-\ead{vinh.dq4@buv.edu.vn}
-\cortext[cor1]{Corresponding author.}
-\affiliation[buv]{organization={British University Vietnam},
-  city={Hung Yen}, country={Vietnam}}
+\author*[1]{\fnm{Quang-Vinh} \sur{Dang}}\email{vinh.dq4@buv.edu.vn}
+\affil*[1]{\orgname{British University Vietnam}, \orgaddress{\city{Hung Yen}, \country{Vietnam}}}
 \fi
 
-\begin{abstract}
-State-of-the-art world models learn a monolithic transition map
+\abstract{State-of-the-art world models learn a monolithic transition map
 in which every latent variable depends on every other and actions
 condition the entire map at once. Because of this structural commitment,
 a change to a single mechanism of the environment---a damaged actuator, an
@@ -82,16 +73,13 @@ localizes the shifted mechanism with an $F_1$ of $0.90\pm0.07$ where an
 oracle-tuned CUSUM reaches $0.69\pm0.12$ and ensemble disagreement
 $0.29\pm0.06$, adapts without any interference on healthy
 mechanisms where full fine-tuning catastrophically degrades them, and
-keeps rollout intervals calibrated before, during, and after the shift.
-\end{abstract}
+keeps rollout intervals calibrated before, during, and after the shift.}
 
-\begin{keyword}
-world models \sep causal representation learning \sep anytime-valid
-inference \sep e-processes \sep distribution shift \sep model-based
-reinforcement learning
-\end{keyword}
+\keywords{world models, causal representation learning, anytime-valid
+inference, e-processes, distribution shift, model-based reinforcement
+learning}
 
-\end{frontmatter}
+\maketitle
 
 \section{Introduction}\label{sec:intro}
 
@@ -1080,11 +1068,6 @@ which do-queries answer contagion questions
 \citep{eisenberg2001systemic,battiston2012debtrank} are the immediate
 next steps of this program.
 
-\section*{Declaration of competing interest}
-The authors declare that they have no known competing financial
-interests or personal relationships that could have appeared to
-influence the work reported in this paper.
-
 \ifanon\else
 \section*{Data availability}
 The complete implementation, the ground-truth benchmark, all experiment
@@ -1100,7 +1083,6 @@ this paper will be released in a public repository upon acceptance; an
 anonymized archive is provided to reviewers.
 \fi
 
-\bibliographystyle{elsarticle-num}
 \bibliography{references}
 
 \end{document}
