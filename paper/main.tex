@@ -237,7 +237,7 @@ demonstrated that a probabilistic dynamics model---there a Gaussian
 process---could make policy search dramatically more data-efficient
 precisely because it propagated model uncertainty through imagined
 rollouts rather than trusting a point estimate. The modern deep-learning
-lineage begins with the recurrent world models of \citet{ha2018world},
+lineage begins with the recurrent world models of Ha and Schmidhuber \citep{ha2018world},
 in which a learned latent simulator was rich enough for a policy to be
 trained entirely inside it, and with PlaNet \citep{hafner2019planet},
 which showed that latent-space planning from pixels was practical at
@@ -282,7 +282,7 @@ mechanisms at once. This premise has been used as a learning signal in
 several ways. Invariant causal prediction exploits the fact that only
 the true causal parents of a variable yield predictions that are stable
 across environments \citep{peters2016invariant}; the meta-transfer
-objective of \citet{bengio2020meta} identifies causal structure by
+objective of Bengio et al.\ \citep{bengio2020meta} identifies causal structure by
 preferring factorizations that adapt fastest to interventions; and
 interventional causal representation learning gives identifiability
 guarantees when data from genuine interventions are available
@@ -318,14 +318,14 @@ wrong'' become actionable evidence about ``\emph{this} is wrong''.
 
 The statistical machinery we attach to each mechanism descends from the
 oldest rigorous treatment of gambling against a hypothesis:
-\citet{ville1939etude} introduced the inequality by which a nonnegative
+Ville \citep{ville1939etude} introduced the inequality by which a nonnegative
 supermartingale exceeds $1/\delta$ with probability at most $\delta$,
 turning betting wealth into a time-uniform certificate. This view has
 been developed into the modern theory of game-theoretic probability and
 safe anytime-valid inference
 \citep{shafer2019game,ramdas2023game}, in which e-processes replace
 p-values wherever data arrive sequentially and stopping rules are
-unknowable in advance. \citet{waudbysmith2024estimating} showed that
+unknowable in advance. Waudby-Smith and Ramdas \citep{waudbysmith2024estimating} showed that
 betting strategies sized by online convex optimization yield
 confidence sequences that are simultaneously valid and nearly optimal,
 with Online Newton Step \citep{hazan2007logarithmic} providing the
@@ -471,7 +471,7 @@ the log-wealth,
 \nabla_t=\frac{g(u_t)-\varepsilon\,\mathrm{sign}\,\lambda_t}
 {1+\lambda_t(g(u_t)-\varepsilon\,\mathrm{sign}\,\lambda_t)},
 \end{equation}
-following \citet{waudbysmith2024estimating}. The gate \emph{alarms} the
+following the betting framework of Waudby-Smith and Ramdas \citep{waudbysmith2024estimating}. The gate \emph{alarms} the
 first time $W^i_t\ge 1/\delta$.
 
 Figure~\ref{fig:pipeline} traces one transition through this machinery:
