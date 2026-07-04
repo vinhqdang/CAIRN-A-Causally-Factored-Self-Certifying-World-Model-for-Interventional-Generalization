@@ -80,7 +80,7 @@ def main():
                 continue
             parts.append(f"**{label}:**\n")
             header = ["Model", "h=1", "h=3", "h=5", "h=10",
-                      "desc@5", "non-desc@5", "non-desc@5 (no-do ref)"]
+                      "desc@3", "non-desc@3", "non-desc@3 (no-do ref)"]
             rows = []
             for name, by_group in rq1["models"].items():
                 rec = by_group.get(group)
@@ -89,9 +89,9 @@ def main():
                 r = rec["rmse_by_horizon"]
                 rows.append([MODEL_LABELS.get(name, name),
                              fmt(r[0]), fmt(r[2]), fmt(r[4]), fmt(r[9]),
-                             fmt(rec["desc_rmse"]["5"]),
-                             fmt(rec["nondesc_rmse"]["5"]),
-                             fmt(rec["nondesc_rmse_no_intervention"]["5"])])
+                             fmt(rec["desc_rmse"]["3"]),
+                             fmt(rec["nondesc_rmse"]["3"]),
+                             fmt(rec["nondesc_rmse_no_intervention"]["3"])])
             parts.append(table(header, rows))
 
     rq2 = load("rq2.json")

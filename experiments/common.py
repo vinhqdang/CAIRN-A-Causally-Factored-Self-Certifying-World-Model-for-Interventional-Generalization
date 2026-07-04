@@ -61,7 +61,10 @@ def build_env(seed: int = 0):
     # near-deterministic dynamics every residual approximation error of the
     # quantile heads is statistically detectable, and no learned model can
     # satisfy the e-gate's conditional-validity null on long streams.
-    env = SyntheticDBN(d=D, m=M, extra_parents=2, sigma=0.2, seed=seed)
+    # extra_parents=1 (in-degree 2) keeps the descendant sets from covering
+    # the whole graph within a few steps, so the descendant/non-descendant
+    # error split of RQ1 stays informative at horizon > 1.
+    env = SyntheticDBN(d=D, m=M, extra_parents=1, sigma=0.2, seed=seed)
     regimes = default_regimes(env, N_TRAIN_REGIMES, seed=seed + 7)
     return env, regimes
 

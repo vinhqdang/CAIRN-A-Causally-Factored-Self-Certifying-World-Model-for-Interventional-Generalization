@@ -77,11 +77,15 @@ def _t(x):
 # RQ1: interventional generalization                                     #
 # ===================================================================== #
 
-def run_rq1(env, zoo, seed=0, H=10, do_values=(-2.0, 2.0)):
-    """Held-out do-interventions (values outside the training range +-1.5)
-    on every node; h-step rollout error of the model-mean trajectory vs the
-    true conditional mean, split into descendants / non-descendants of the
-    intervened node (the structural signature)."""
+def run_rq1(env, zoo, seed=0, H=10, do_values=(-4.0, 4.0)):
+    """Do-interventions with values far outside the reachable state range
+    (|z| <= ~1/(1-rho) + noise < 3, do values +-4), on nodes never
+    intervened during training (heldout) and on trained do-targets; h-step
+    rollout error of the model-mean trajectory vs the true conditional
+    mean, split into descendants / non-descendants of the intervened node.
+    Off-support do-states are where factorization matters: a non-child
+    mechanism provably ignores the intervened coordinate, while a
+    monolithic map extrapolates with it as an input everywhere."""
     print("== RQ1 ==", flush=True)
     rng = np.random.default_rng(seed + 100)
     horizons = [1, 3, 5, 10]
