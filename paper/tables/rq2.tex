@@ -1,0 +1,23 @@
+\begin{table}[t]
+\caption{Detection and localization (RQ2), aggregated over ten unannounced
+mechanism-shift scenarios and three $6{,}000$-step stationary null streams
+at level $\delta=0.05$. The e-gates run with no tuning; CUSUM and ensemble
+thresholds receive oracle tuning on a separate null stream. The exact-null
+verification (gates fed probability integral transforms from the true
+environment conditional) produced an alarm fraction of
+$0.0000$, consistent with
+Proposition~\ref{prop:validity}. $^{\ast}$per stream rather than per gate.}
+\label{tab:rq2}
+\small\setlength{\tabcolsep}{4pt}%
+\begin{tabular}{lccccc}
+\toprule
+Detector & Null alarms & Med.\ delay & Loc.\ $F_1$ & Prec.\ & Rec.\\
+\midrule
+CAIRN e-gates & 0.000 & 18 & 0.967 & 0.950 & 1.000 \\
+e-gates, oracle graph & 0.000 & 25 & 0.967 & 0.950 & 1.000 \\
+CUSUM & 0.417 & 2 & 0.680 & 0.617 & 0.800 \\
+Ensemble disagreement & 0.500 & 20 & 0.284 & 0.237 & 0.700 \\
+Global e-gate (monolithic) & 0.667$^{\ast}$ & 159 & \multicolumn{3}{c}{undefined (no localization)} \\
+\botrule
+\end{tabular}
+\end{table}

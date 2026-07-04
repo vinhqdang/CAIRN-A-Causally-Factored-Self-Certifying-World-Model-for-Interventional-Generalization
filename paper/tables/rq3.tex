@@ -1,0 +1,29 @@
+\begin{table}[t]
+\caption{Localized adaptation versus fine-tuning (RQ3): one-step median
+RMSE after an unannounced shift of mechanism set $S$, as a function of the
+number of post-shift samples $n$, evaluated on the shifted variables
+(``shifted'') and on all variables (``all''). All methods receive the same
+stream and the same gradient budget. Full fine-tuning suffers catastrophic
+interference on the seven healthy mechanisms; the evidence-triggered
+localized refit leaves them untouched.}\label{tab:rq3}
+\small\setlength{\tabcolsep}{3pt}%
+\begin{tabular}{lllcccccc}
+\toprule
+Shift & Method & Nodes & $n{=}0$ & $n{=}25$ & $n{=}50$ & $n{=}100$ & $n{=}200$ & $n{=}400$\\
+\midrule
+$S{=}\{1\}$ & CAIRN localized refit & shifted & 0.819 & 0.819 & 0.541 & 0.541 & 0.358 & 0.360 \\
+ &  & all & 0.347 & 0.347 & 0.270 & 0.270 & 0.229 & 0.229 \\
+$S{=}\{1\}$ & CAIRN full fine-tune & shifted & 0.819 & 0.489 & 0.459 & 0.435 & 0.327 & 0.256 \\
+ &  & all & 0.347 & 1.899 & 2.497 & 2.824 & 0.770 & 0.681 \\
+$S{=}\{1\}$ & Monolithic fine-tune & shifted & 0.743 & 0.972 & 5.026 & 4.656 & 0.693 & 0.694 \\
+ &  & all & 0.332 & 1.456 & 3.310 & 3.176 & 0.967 & 1.163 \\
+\midrule
+$S{=}\{3,5\}$ & CAIRN localized refit & shifted & 1.495 & 1.572 & 1.571 & 1.304 & 1.312 & 0.449 \\
+ &  & all & 0.771 & 0.809 & 0.808 & 0.793 & 0.802 & 0.331 \\
+$S{=}\{3,5\}$ & CAIRN full fine-tune & shifted & 1.495 & 0.576 & 2.584 & 2.152 & 1.318 & 1.460 \\
+ &  & all & 0.771 & 0.828 & 1.552 & 1.915 & 1.622 & 1.039 \\
+$S{=}\{3,5\}$ & Monolithic fine-tune & shifted & 1.460 & 1.495 & 1.179 & 1.413 & 2.108 & 2.330 \\
+ &  & all & 0.802 & 1.343 & 2.507 & 2.936 & 2.396 & 2.260 \\
+\botrule
+\end{tabular}
+\end{table}

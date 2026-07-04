@@ -1,0 +1,29 @@
+\begin{table}[t]
+\caption{Interventional generalization (RQ1). Rollout RMSE of the
+model-mean trajectory against the true conditional mean under off-support
+do-interventions ($\mathrm{do}(z^i{=}\pm 4)$), for do-targets never
+intervened during training (held-out) and for trained do-targets, together
+with the structural split at horizon $3$: error on descendants versus
+non-descendants of the intervened variable, and the no-intervention
+reference error of the same non-descendant set. A structurally correct
+model must leave non-descendants unchanged, so its non-descendant column
+must match the reference column.}\label{tab:rq1}
+\small\setlength{\tabcolsep}{3.5pt}%
+\begin{tabular}{llcccccc}
+\toprule
+Targets & Model & $h{=}1$ & $h{=}3$ & $h{=}5$ & desc.\ & non-desc.\ & ref.\\
+\midrule
+held-out & CAIRN (learned graph) & 0.349 & 1.025 & 1.748 & 0.657 & 0.758 & 0.739 \\
+held-out & CAIRN w/o $\mathcal{L}^{\mathrm{inv}}$ & 0.376 & 1.065 & 1.791 & 0.649 & 0.809 & 0.815 \\
+held-out & CAIRN (oracle graph) & 0.412 & 1.017 & 1.640 & 0.616 & 0.744 & 0.744 \\
+held-out & Monolithic WM & 0.328 & 0.916 & 1.524 & 0.607 & 0.757 & 0.726 \\
+held-out & Probabilistic ensemble & 0.346 & 1.017 & 1.715 & 0.759 & 0.790 & 0.745 \\
+\midrule
+trained & CAIRN (learned graph) & 0.313 & 0.990 & 1.405 & 0.885 & 0.580 & 0.552 \\
+trained & CAIRN w/o $\mathcal{L}^{\mathrm{inv}}$ & 0.342 & 1.003 & 1.445 & 0.912 & 0.595 & 0.605 \\
+trained & CAIRN (oracle graph) & 0.379 & 0.998 & 1.403 & 0.704 & 0.671 & 0.671 \\
+trained & Monolithic WM & 0.276 & 1.105 & 1.594 & 1.043 & 0.708 & 0.456 \\
+trained & Probabilistic ensemble & 0.288 & 1.061 & 1.521 & 1.089 & 0.616 & 0.476 \\
+\botrule
+\end{tabular}
+\end{table}

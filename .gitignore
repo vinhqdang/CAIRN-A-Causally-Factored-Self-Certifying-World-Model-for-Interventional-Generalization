@@ -219,3 +219,11 @@ __marimo__/
 
 # experiment artifacts
 results/run_all.log
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.toc
+results/rerun_*.log
+results/zoo_seed*.pt
