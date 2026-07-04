@@ -107,14 +107,18 @@ class CairnWorldModel(nn.Module):
     # Rollouts                                                            #
     # ------------------------------------------------------------------ #
 
-    def node_inflation(self) -> torch.Tensor:
+    def node_inflation(self, cap: float = 4.0) -> torch.Tensor:
         """Per-node quantile-spread inflation factor, increasing in log W
-        (algorithm.md 2.2 use #2).  Healthy nodes (W <= 1) get factor 1."""
+        (algorithm.md 2.2 use #2).  Healthy nodes (W <= 1) get factor 1;
+        the factor is capped so an alarmed mechanism widens its intervals
+        honestly rather than unboundedly (wealth keeps growing after an
+        alarm, but predictive spread should not)."""
         log_thresh = math.log(1.0 / self.delta)
         factors = []
         for i in range(self.d):
             lw = max(0.0, self.gates.node_log_wealth(i))
-            factors.append(1.0 + self.inflation_scale * lw / log_thresh)
+            factors.append(min(cap,
+                               1.0 + self.inflation_scale * lw / log_thresh))
         return torch.tensor(factors)
 
     @torch.no_grad()
