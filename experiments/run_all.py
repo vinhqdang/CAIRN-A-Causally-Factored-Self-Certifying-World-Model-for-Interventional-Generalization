@@ -502,9 +502,11 @@ def run_rq3(env, zoo, seed=0):
 # ===================================================================== #
 
 def _coverage(model, env, regime, horizons, n_cases, seed,
-              inflate=False, mixture=True):
+              inflate=False, mixture=True, node=None):
     """Empirical coverage of 80%/90% rollout intervals vs realized
-    trajectories."""
+    trajectories.  ``node`` restricts scoring to one variable (e.g. the
+    shifted mechanism's output, where interval honesty is actually at
+    stake — the all-node average dilutes a single-node shift)."""
     rng = np.random.default_rng(seed)
     H = max(horizons)
     hits80 = {h: [] for h in horizons}
@@ -533,11 +535,14 @@ def _coverage(model, env, regime, horizons, n_cases, seed,
         s = samples[:, :, 0, :].numpy()          # (S, H, d)
         lo90, hi90 = np.quantile(s, 0.05, axis=0), np.quantile(s, 0.95, 0)
         lo80, hi80 = np.quantile(s, 0.10, axis=0), np.quantile(s, 0.90, 0)
+        sel = slice(None) if node is None else slice(node, node + 1)
         for h in horizons:
             hits90[h].append(float(np.mean(
-                (traj[h - 1] >= lo90[h - 1]) & (traj[h - 1] <= hi90[h - 1]))))
+                (traj[h - 1, sel] >= lo90[h - 1, sel])
+                & (traj[h - 1, sel] <= hi90[h - 1, sel]))))
             hits80[h].append(float(np.mean(
-                (traj[h - 1] >= lo80[h - 1]) & (traj[h - 1] <= hi80[h - 1]))))
+                (traj[h - 1, sel] >= lo80[h - 1, sel])
+                & (traj[h - 1, sel] <= hi80[h - 1, sel]))))
     return ({h: float(np.mean(v)) for h, v in hits80.items()},
             {h: float(np.mean(v)) for h, v in hits90.items()})
 
@@ -567,8 +572,13 @@ def run_rq4(env, zoo, seed=0):
         c80, c90 = _coverage(model, env, shift, horizons,
                              8 if SMOKE else 96, seed + 201,
                              inflate=inflate)
-        out["shift"][label] = {"cov80": c80, "cov90": c90}
-        print(f"  shift {label}: cov90={c90}", flush=True)
+        n80, n90 = _coverage(model, env, shift, horizons,
+                             8 if SMOKE else 96, seed + 201,
+                             inflate=inflate, node=2)
+        out["shift"][label] = {"cov80": c80, "cov90": c90,
+                               "cov80_shifted_node": n80,
+                               "cov90_shifted_node": n90}
+        print(f"  shift {label}: cov90={c90} node2={n90}", flush=True)
     # Ensemble under the same shift (no mechanism for honesty).
     c80, c90 = _coverage(zoo["ensemble_deploy"], env, shift, horizons,
                          8 if SMOKE else 96, seed + 201)
@@ -585,7 +595,12 @@ def run_rq4(env, zoo, seed=0):
         adapter.step(_t(z), _t(a), _t(zn), generator=gen)
     c80, c90 = _coverage(model, env, shift, horizons,
                          8 if SMOKE else 96, seed + 202, inflate=True)
-    out["shift"]["post_adapt"] = {"cov80": c80, "cov90": c90}
+    n80, n90 = _coverage(model, env, shift, horizons,
+                         8 if SMOKE else 96, seed + 202, inflate=True,
+                         node=2)
+    out["shift"]["post_adapt"] = {"cov80": c80, "cov90": c90,
+                                  "cov80_shifted_node": n80,
+                                  "cov90_shifted_node": n90}
     print(f"  shift post_adapt: cov90={c90}", flush=True)
     return out
 
@@ -731,9 +746,15 @@ def main():
     env, regimes = build_env(args.seed)
     episodes = build_dataset(env, regimes, seed=args.seed + 1)
     need_zoo = only & {"rq1", "rq2", "rq3", "rq4", "rq5"}
-    zoo = train_zoo(env, episodes, seed=args.seed,
-                    steps=args.steps) if need_zoo else {}
-    if zoo:
+    cache_path = os.path.join(RESULTS_DIR,
+                              f"zoo_seed{args.seed}.pt") if not SMOKE else None
+    zoo = {}
+    if need_zoo and cache_path and os.path.exists(cache_path):
+        print(f"== loading cached zoo from {cache_path} ==", flush=True)
+        zoo = torch.load(cache_path, weights_only=False)
+    elif need_zoo:
+        zoo = train_zoo(env, episodes, seed=args.seed, steps=args.steps)
+    if zoo and "cairn_deploy" not in zoo:
         # Deployment pipeline (regime-entry adaptation + conformal PIT
         # calibration, algorithm.md 2.3): monitored/adapted/planned models
         # are refit to the deployment (nominal) regime with the learned
@@ -764,6 +785,9 @@ def main():
             zoo[name].calibrate_pits(cal["z"], cal["a"], cal["z_next"],
                                      generator=gen)
         zoo["_cal"] = (cal["z"], cal["a"], cal["z_next"])
+        if cache_path:
+            torch.save(zoo, cache_path)
+            print(f"== zoo cached to {cache_path} ==", flush=True)
     meta = {"d": D, "m": M, "seed": args.seed, "train_steps": args.steps,
             "A_true": env.A_true.tolist(), "M_true": env.M_true.tolist()}
     save_json("meta.json", meta)

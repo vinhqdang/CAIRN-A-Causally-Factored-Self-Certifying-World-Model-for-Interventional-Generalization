@@ -144,14 +144,23 @@ def main():
                          f"pre-shift RMSE {fmt(sc['pre_shift_rmse'])}, "
                          f"recovery threshold "
                          f"{fmt(sc['recovery_threshold'])}:\n")
-            header = ["Method", "n=0"] + [f"n={c}" for c in cps] + \
+            header = ["Method", "Nodes", "n=0"] + [f"n={c}" for c in cps] + \
                 ["Samples to recovery"]
             rows = []
             for mname, m in sc["methods"].items():
-                rows.append([mname]
+                rows.append([mname, "shifted S"]
                             + [fmt(x) for x in m["rmse_curve"]]
                             + [fmt(m.get("samples_to_recovery"))])
+                if "rmse_curve_all_nodes" in m:
+                    rows.append([mname, "all (interference)"]
+                                + [fmt(x) for x in m["rmse_curve_all_nodes"]]
+                                + [""])
             parts.append(table(header, rows))
+            parts.append(
+                "The *all (interference)* rows show what adaptation does to "
+                "the rest of the model: localized e-gate refits leave the "
+                "seven healthy mechanisms untouched, while full fine-tuning "
+                "degrades them catastrophically mid-adaptation.\n")
 
     rq4 = load("rq4.json")
     if rq4:
@@ -166,11 +175,20 @@ def main():
                         + [fmt(rec["cov90"][str(h)]) for h in hs])
         parts.append(table(header, rows))
         parts.append("Under an unannounced mechanism shift "
-                     "(coverage of nominal 90% intervals):\n")
+                     "(coverage of nominal 90% intervals; the "
+                     "*shifted node* columns score only the broken "
+                     "mechanism's variable, where honesty is at stake):\n")
+        header2 = ["Condition"] + [f"h={h}" for h in hs] + \
+            [f"shifted node h={h}" for h in hs]
         rows = []
         for name, rec in rq4["shift"].items():
-            rows.append([name] + [fmt(rec["cov90"][str(h)]) for h in hs])
-        parts.append(table(header, rows))
+            row = [name] + [fmt(rec["cov90"][str(h)]) for h in hs]
+            if "cov90_shifted_node" in rec:
+                row += [fmt(rec["cov90_shifted_node"][str(h)]) for h in hs]
+            else:
+                row += ["--"] * len(hs)
+            rows.append(row)
+        parts.append(table(header2, rows))
 
     rq5 = load("rq5.json")
     if rq5:
