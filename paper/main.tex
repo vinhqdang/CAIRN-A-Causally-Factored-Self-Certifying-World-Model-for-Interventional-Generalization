@@ -83,21 +83,55 @@ learning}
 
 \section{Introduction}\label{sec:intro}
 
-A world model is a learned simulator that an agent carries inside itself:
-given the current state and a candidate course of action, it imagines how
-the future unfolds, and the agent plans against those imagined futures
-rather than against the far more expensive real world
-\citep{ha2018world,hafner2025mastering,hansen2024tdmpc2}. The past years
-have produced world models of remarkable breadth, from recurrent
-state-space models that support control purely from imagination
-\citep{hafner2025mastering} to latent-dynamics models embedded in
-model-predictive control \citep{hansen2024tdmpc2}, autoregressive
-token-based dynamics \citep{micheli2023transformers}, and generative video
-models that render entire interactive environments
+Consider a manipulation robot that has spent weeks learning an accurate
+internal model of its workspace, and suppose that one morning a bearing
+in its wrist begins to fail, so that the same motor command now produces
+two thirds of the accustomed torque. Nothing announces this change. The
+robot's world model---the learned simulator it plans with---continues to
+imagine futures under the old physics, its planner continues to select
+actions that would have been excellent yesterday, and the resulting
+behaviour degrades in ways that are difficult to diagnose precisely
+because the model reports no more uncertainty today than it did before
+the bearing failed. The same story plays out wherever learned dynamics
+models are deployed against a world that can change one piece at a time:
+a warehouse floor that becomes slippery in one aisle, a chemical process
+whose catalyst ages, a financial network in which a single protocol's
+collateral rule is exploited. What all these situations share is that
+the change is \emph{local}---one mechanism among many---while the failure
+of the learned model is \emph{global and silent}. This paper is about
+building world models for which that sentence is no longer true.
+
+A world model is a learned simulator that an agent carries inside
+itself: given the current state and a candidate course of action, it
+imagines how the future unfolds, and the agent plans against those
+imagined futures rather than against the far more expensive real world
+\citep{sutton1991dyna,ha2018world,hafner2025mastering}. Because the
+world is stochastic, a good world model must reproduce not merely the
+expected future but the whole distribution over futures, and the quality
+of that imagined distribution is what planning quality inherits
+(Figure~\ref{fig:imagination}). The past years have produced world
+models of remarkable breadth, from recurrent state-space models that
+support control purely from imagination
+\citep{hafner2019planet,hafner2025mastering} to latent-dynamics models
+embedded in model-predictive control \citep{hansen2024tdmpc2},
+autoregressive token-based dynamics \citep{micheli2023transformers}, and
+generative video models that render entire interactive environments
 \citep{bruce2024genie}. Despite their diversity, these models share one
-structural commitment: the transition function is a \emph{monolithic map}
-$\hat{s}_{t+1}=f_\theta(s_t,a_t)$ in which every latent dimension depends
-on every other and the action conditions the whole map.
+structural commitment: the transition function is a \emph{monolithic
+map} $\hat{s}_{t+1}=f_\theta(s_t,a_t)$ in which every latent dimension
+depends on every other and the action conditions the whole map.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_imagination.png}
+\caption{What a world model does. Left: forty futures that the real
+environment of Section~\ref{sec:experiments} can produce from one state
+under one action plan. Right: forty futures CAIRN imagines for the same
+situation by propagating samples through its per-variable quantile
+heads. A useful world model must reproduce not only the mean of what
+will happen (dashed) but the spread of what could.}
+\label{fig:imagination}
+\end{figure}
 
 Because of this commitment, three well-documented failure modes follow.
 First, the models are \emph{interventionally brittle}: when one mechanism
@@ -174,48 +208,153 @@ and the places where the causal machinery does not help
 
 \section{Related work}\label{sec:related}
 
-\paragraph{World models.} Learned latent dynamics for planning date back
-at least to the recurrent world models of \citet{ha2018world}; the
-Dreamer line established imagination-based actor--critic learning at
-scale, culminating in a single configuration that masters diverse control
-domains \citep{hafner2025mastering}. TD-MPC2 couples latent dynamics with
-sampling-based model-predictive control \citep{hansen2024tdmpc2}, IRIS
-treats dynamics as autoregressive token prediction
-\citep{micheli2023transformers}, and Genie generates playable
-environments from video alone \citep{bruce2024genie}. Probabilistic
-ensembles quantify epistemic uncertainty by disagreement
-\citep{chua2018deep}. All of these share the monolithic transition map
-whose failure under localized change motivates our work.
+CAIRN stands at the intersection of three literatures that have so far
+developed largely independently of one another: world models for
+planning and control, causal representation and dynamics learning, and
+anytime-valid sequential inference. We review each in turn, and close by
+situating our contribution against the small set of works that combine
+any two of the three.
 
-\paragraph{Causal dynamics and representations.} Factoring dynamics along
-causal structure is the program of causal representation learning
-\citep{scholkopf2021toward}. Causal dynamics learning recovers sparse
-transition structure for state abstraction \citep{wang2022causal}, and
-Denoised MDPs separate controllable from uncontrollable factors
-\citep{wang2022denoised}. Identifiability of latent causal variables from
-interventional data is analyzed by \citet{ahuja2023interventional}.
-Differentiable structure learning descends from NOTEARS
-\citep{zheng2018dags}; in our temporal setting edges run strictly forward
-in time, so the acyclicity constraint---the least stable ingredient of
-that line---is unnecessary. CausalWorld provides a robotic benchmark with
-ground-truth causal structure \citep{ahmed2021causalworld}; our synthetic
-suite plays the same role at smaller scale with exact scoring. None of
-these systems monitor their own mechanisms' validity online.
+\subsection{World models for planning and control}
 
-\paragraph{Anytime-valid monitoring.} Testing by betting goes back to
-\citet{ville1939etude} and has been developed into a general theory of
-safe, anytime-valid inference
-\citep{shafer2019game,ramdas2023game,waudbysmith2024estimating}. Online
-randomness testing with conformal martingales \citep{vovk2021testing} and
-adaptive conformal inference \citep{gibbs2021adaptive} monitor a model
-from the outside. CAIRN internalizes the martingale: one e-process per
-mechanism, whose wealth feeds back into prediction, adaptation, and
-structure repair. Our bet sizing uses Online Newton Step, whose
-logarithmic regret for exp-concave losses \citep{hazan2007logarithmic}
-underlies the detection-delay bound. Calibration of distributional
-forecasts via the probability integral transform is classical
-\citep{gneiting2007probabilistic}, as is quantile regression via the
+The idea that an agent should learn a model of its environment and plan
+inside it is among the oldest in reinforcement learning: Dyna
+\citep{sutton1991dyna} already interleaved learning, planning, and
+acting through a learned model, and PILCO \citep{deisenroth2011pilco}
+demonstrated that a probabilistic dynamics model---there a Gaussian
+process---could make policy search dramatically more data-efficient
+precisely because it propagated model uncertainty through imagined
+rollouts rather than trusting a point estimate. The modern deep-learning
+lineage begins with the recurrent world models of \citet{ha2018world},
+in which a learned latent simulator was rich enough for a policy to be
+trained entirely inside it, and with PlaNet \citep{hafner2019planet},
+which showed that latent-space planning from pixels was practical at
+scale. The Dreamer family refined this recipe into imagination-based
+actor--critic learning, culminating in a single configuration that
+masters a wide diversity of control domains \citep{hafner2025mastering};
+TD-MPC2 couples learned latent dynamics with sampling-based
+model-predictive control and scales it across more than a hundred
+continuous-control tasks \citep{hansen2024tdmpc2}; IRIS recasts dynamics
+learning as autoregressive prediction over discrete tokens
+\citep{micheli2023transformers}; and Genie learns generative,
+action-controllable video environments from unlabelled footage alone
+\citep{bruce2024genie}. On the uncertainty side, PETS
+\citep{chua2018deep} established the probabilistic-ensemble recipe that
+remains the de facto standard: several bootstrapped dynamics networks
+whose disagreement serves as an epistemic signal during trajectory
+sampling.
+
+For all their differences in representation---recurrent state, latent
+vector, token sequence, video frame---these systems share the monolithic
+transition map described in the introduction, and they inherit its
+consequences. When one mechanism of the environment changes, there is no
+component of the model that corresponds to the changed mechanism, so
+there is nothing to detect, nothing to blame, and nothing to repair
+short of fine-tuning the whole network, with the catastrophic
+interference that Section~\ref{sec:experiments} quantifies. Ensemble
+disagreement, the standard uncertainty tool, measures where the members
+were trained differently---not where the world has since changed---and
+our experiments confirm that it neither controls false alarms nor
+localizes genuine shifts. CAIRN differs from this entire line not in how
+well it predicts, but in what it is made of: mechanisms that can be
+individually monitored, individually distrusted, and individually
+replaced.
+
+\subsection{Causal representation and dynamics learning}
+
+That learned models should factor along causal lines is the central
+tenet of causal representation learning \citep{scholkopf2021toward},
+whose core premise---the sparse-mechanism-shift hypothesis---holds that
+naturally occurring distribution shifts affect few of the underlying
+mechanisms at once. This premise has been used as a learning signal in
+several ways. Invariant causal prediction exploits the fact that only
+the true causal parents of a variable yield predictions that are stable
+across environments \citep{peters2016invariant}; the meta-transfer
+objective of \citet{bengio2020meta} identifies causal structure by
+preferring factorizations that adapt fastest to interventions; and
+interventional causal representation learning gives identifiability
+guarantees when data from genuine interventions are available
+\citep{ahuja2023interventional}. On the dynamics side, causal dynamics
+learning recovers a sparse transition graph and uses it for
+task-independent state abstraction \citep{wang2022causal}, Denoised
+MDPs separate controllable from uncontrollable factors of variation
+\citep{wang2022denoised}, and differentiable structure discovery
+descends from NOTEARS \citep{zheng2018dags}, whose continuous
+acyclicity penalty made graph learning amenable to gradient descent.
+Our setting sidesteps the least stable ingredient of that machinery:
+because a world model's edges run strictly forward in time, the graph
+is a dynamic Bayesian network and acyclicity holds by construction, so
+structure learning reduces to sparse masking with Gumbel-sigmoid
+relaxations \citep{jang2017categorical,maddison2017concrete}.
+CausalWorld supplies a robotic benchmark whose ground-truth causal
+structure makes such claims testable \citep{ahmed2021causalworld}; our
+synthetic suite plays the same diagnostic role at a scale where every
+quantity of interest---graph, targets, descendants, shifted
+mechanisms---can be scored exactly.
+
+What none of these works provide is any \emph{deployment-time} account
+of mechanism validity. A causal factorization is learned, frozen, and
+then trusted; if a mechanism goes stale, the factored model fails in the
+same silent way a monolithic one does, merely along cleaner seams. The
+premise that shifts are sparse is used as a training-time regularizer,
+never as a run-time diagnostic. CAIRN's position is that the
+factorization earns its keep precisely at deployment: it is the
+addressing scheme that lets statistical evidence about ``something is
+wrong'' become actionable evidence about ``\emph{this} is wrong''.
+
+\subsection{Anytime-valid inference and sequential monitoring}
+
+The statistical machinery we attach to each mechanism descends from the
+oldest rigorous treatment of gambling against a hypothesis:
+\citet{ville1939etude} introduced the inequality by which a nonnegative
+supermartingale exceeds $1/\delta$ with probability at most $\delta$,
+turning betting wealth into a time-uniform certificate. This view has
+been developed into the modern theory of game-theoretic probability and
+safe anytime-valid inference
+\citep{shafer2019game,ramdas2023game}, in which e-processes replace
+p-values wherever data arrive sequentially and stopping rules are
+unknowable in advance. \citet{waudbysmith2024estimating} showed that
+betting strategies sized by online convex optimization yield
+confidence sequences that are simultaneously valid and nearly optimal,
+with Online Newton Step \citep{hazan2007logarithmic} providing the
+logarithmic regret that our detection-delay bound leans on. Closest in
+spirit to our monitoring problem, conformal test martingales test
+exchangeability online \citep{vovk2005algorithmic,vovk2021testing}, and
+adaptive conformal inference tracks miscoverage of a deployed predictor
+under distribution shift \citep{gibbs2021adaptive}. Classical sequential
+change detection, embodied by the CUSUM procedure
+\citep{page1954continuous}, remains the standard engineering answer and
+serves as our strongest tuned baseline. Finally, our residuals are
+probability integral transforms of distributional forecasts, whose role
+in calibration assessment is classical \citep{gneiting2007probabilistic},
+and our mechanism heads are quantile regressions trained with the
 pinball loss \citep{koenker1978regression}.
+
+Every one of these monitors, however, is \emph{external}: it watches a
+scalar summary of a model from outside and can at best raise a global
+alarm. The distinctive move in CAIRN is architectural internalization.
+There is one e-process per mechanism, its input is that mechanism's own
+predictive validity, and its wealth is not a dashboard number but a
+model parameter: it reweights the mechanism library, inflates exactly
+that mechanism's rollout uncertainty, triggers its refit, and arbitrates
+repair of its parent set. To our knowledge, no prior world model
+carries anytime-valid evidence inside its own transition function.
+
+\subsection{Positioning}
+
+Combining two of the three literatures is not new: model-based
+reinforcement learning with ensembles combines world models with
+(heuristic) uncertainty \citep{chua2018deep}; causal dynamics learning
+combines world models with causal structure \citep{wang2022causal};
+conformal monitoring combines deployed predictors with valid sequential
+inference \citep{gibbs2021adaptive,vovk2021testing}. The three-way
+combination is, to our knowledge, new, and Section~\ref{sec:experiments}
+is designed to show that it is not a decoration: the localization
+guarantee (Proposition~\ref{prop:local}) is available \emph{only} to a
+factored model, the tolerance null (Proposition~\ref{prop:validity}) is
+what makes betting guarantees survive learned mechanisms, and the
+ablation that removes structure---a single e-gate over a monolithic
+model---fails to detect localized shifts at all at matched tolerance.
 
 \section{The CAIRN world model}\label{sec:method}
 
@@ -322,6 +461,28 @@ the log-wealth,
 \end{equation}
 following \citet{waudbysmith2024estimating}. The gate \emph{alarms} the
 first time $W^i_t\ge 1/\delta$.
+
+Figure~\ref{fig:pipeline} traces one transition through this machinery:
+the observation is partitioned into variables, each mechanism sees only
+the inputs its learned masks admit, predicts a full distribution, watches
+where reality lands inside that distribution, and places its bets. When
+the mechanism is healthy the PIT falls unpredictably and the bets lose
+money on average; when the mechanism is broken the PITs pile up in a
+region of the unit interval and the wealth compounds exponentially.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_pipeline.png}
+\caption{One transition through CAIRN. (1) The observation is partitioned
+into variables. (2) Mechanism $f_2$ receives only the inputs its learned
+causal masks admit---here two parent variables and both action
+coordinates; all other inputs are zeroed. (3) The mechanism predicts a
+full distribution through seven quantiles, and the realized next value
+lands at PIT $u=0.54$, near the middle, as it should when the mechanism
+is valid. (4) The gate evaluates its location and dispersion payoffs at
+$u$ and updates its wealth by \eqref{eq:wealth}.}
+\label{fig:pipeline}
+\end{figure}
 
 Two practical refinements make the guarantee hold for \emph{learned}
 mechanisms rather than only for ideal ones. First, before deployment the
@@ -617,10 +778,17 @@ and thus routes around unhealthy mechanisms.}\label{fig:flow}
 
 \subsection{Benchmark, baselines, and protocol}
 
-Because the claims concern detection, localization, and adaptation
-relative to a known ground truth, the primary testbed is a synthetic
-nonlinear dynamic Bayesian network in the spirit of the diagnostic role
-that CausalWorld plays for robotic setups \citep{ahmed2021causalworld}:
+The claims of this paper are claims about \emph{correctness}: that
+alarms respect a false-alarm guarantee, that they name the truly shifted
+mechanisms, that non-descendants of an intervention are untouched, and
+that adaptation repairs what broke and nothing else. Claims of this kind
+can only be scored against an environment whose causal structure, shift
+locations, and interventional ground truth are known exactly, which is
+why our primary testbed is synthetic by design rather than by
+convenience---the same diagnostic role that CausalWorld plays for
+robotic setups \citep{ahmed2021causalworld}, at a scale where every
+quantity of interest is computable in closed form. The environment is a
+nonlinear dynamic Bayesian network:
 $d=8$ variables, $m=3$ action coordinates, mechanisms
 $z^i_{t+1}=\rho_i z^i_t+\tanh(w_i^\top z_t^{\mathrm{pa}(i)}
 +c_i^\top a_t^{\mathrm{tg}(i)}+b_i)+\sigma\xi$ with edge weights bounded
@@ -629,14 +797,35 @@ mechanism shifts, and do-interventions on individual variables
 (Figure~\ref{fig:graph}). Training data span four regimes (nominal plus
 three sparse shifts) with labeled interventions restricted to variables
 $\{0,1,2,3\}$, so that do-queries on the remaining variables are
-compositionally held out. We compare against a monolithic quantile world
-model of matched training budget (the canonical
-DreamerV3/TD-MPC2-style commitment, in state space), a five-member
-probabilistic ensemble with trajectory sampling \citep{chua2018deep}, an
-oracle-tuned per-variable CUSUM detector, a global e-gate over the
-monolithic model (isolating why localization requires structure), and
-CAIRN ablations (oracle graph; no invariance term). All experiments run
-on CPU; the complete suite trains in under an hour.
+compositionally held out: at evaluation time the model is asked what
+happens under interventions of a kind it has seen applied only to
+\emph{other} variables. Before deployment-time monitoring begins, every
+model undergoes the regime-entry refit of Section~\ref{sec:training},
+and the e-gates receive their conformal calibration on held-out
+deployment-regime episodes, so that all guarantees are evaluated on data
+disjoint from everything used for fitting.
+
+The comparison set is chosen so that each claimed capability has a
+baseline designed to take it away. Against prediction and planning we
+compare a monolithic quantile world model of matched training budget and
+architecture family---the canonical DreamerV3/TD-MPC2-style commitment,
+instantiated in state space so that the comparison isolates
+factorization rather than encoder quality---and a five-member
+probabilistic ensemble with trajectory sampling in the PETS tradition
+\citep{chua2018deep}. Against detection we compare the classical CUSUM
+procedure \citep{page1954continuous} run per variable on standardized
+residuals, granted \emph{oracle} tuning: its thresholds are set to the
+maximum statistic observed on a held-out null stream, the most
+favourable calibration a practitioner could perform, and one that CAIRN,
+which needs no tuning at all, must beat anyway. Ensemble disagreement
+with the same oracle thresholding tests the folk wisdom that epistemic
+uncertainty suffices for shift detection. A global e-gate over the
+monolithic model---identical statistical machinery, no
+factorization---isolates the role of structure, and the CAIRN ablations
+(oracle graph as an upper bound; no invariance term) map each component
+to its contribution. All experiments run on a CPU workstation; the
+complete suite trains in under an hour, and every number below
+regenerates from committed scripts.
 
 \begin{figure}[t]
 \centering
@@ -713,9 +902,16 @@ mean-squared error on this benchmark.
 
 \subsection{Localized adaptation (RQ3)}
 
-Table~\ref{tab:rq3} compares evidence-triggered localized refits against
-full fine-tuning of either CAIRN or the monolithic model at a matched
-gradient budget on the same post-shift stream. The localized refit
+If detection is to matter, it must change what adaptation costs. The
+promise of a factored model is that repairing a one-mechanism shift
+should be a one-mechanism problem---a few dozen samples for a small
+network with a sparse parent set---whereas a monolithic model must
+relearn a joint map in which the shift is entangled with everything it
+got right. Table~\ref{tab:rq3} tests exactly this: it compares
+evidence-triggered localized refits against full fine-tuning of either
+CAIRN or the monolithic model at a matched gradient budget on the same
+post-shift stream, scoring both the shifted variables and, crucially,
+the healthy ones. The localized refit
 improves the shifted mechanisms steadily while the error of the seven
 healthy mechanisms is untouched---overall error \emph{decreases}
 throughout adaptation. Both fine-tuning baselines suffer catastrophic
@@ -731,8 +927,15 @@ metric.
 
 \subsection{Calibration (RQ4)}
 
-Table~\ref{tab:rq4} reports empirical coverage of nominal $90\%$ rollout
-intervals. In distribution, CAIRN's intervals are near-nominal across
+A world model that cannot be sure should say so, and it should say so
+about the right variables. Calibration is therefore not a cosmetic
+property here but the interface between monitoring and planning: the
+planner consumes predictive intervals, and whether those intervals are
+honest---before a shift, during the window in which a shift has occurred
+but has not yet been repaired, and after adaptation---determines whether
+risk-sensitive planning means anything at all. Table~\ref{tab:rq4}
+reports empirical coverage of nominal $90\%$ rollout intervals across
+exactly those three phases. In distribution, CAIRN's intervals are near-nominal across
 horizons where the ensemble under-covers. Under an unannounced shift and
 before any adaptation, the stale intervals lose most of their coverage
 on the shifted variable (down to $0.42$ at horizon one against a nominal
@@ -756,8 +959,14 @@ coverage without touching healthy variables.}\label{fig:inflation}
 
 \subsection{Structure recovery and regime diversity (RQ6)}
 
-Table~\ref{tab:rq6} shows recovery of $A$ and $M$ as the number of
-training regimes grows, holding the total number of episodes fixed.
+Everything above presupposes that the structure CAIRN learns is close
+to the truth, and the theory of interventional identifiability predicts
+that the decisive resource is not more data but more \emph{diverse}
+data: regimes that shift different mechanisms and interventions that
+strike different targets. Table~\ref{tab:rq6} tests this prediction
+directly, showing recovery of $A$ and $M$ as the number of training
+regimes grows while the total number of episodes is held fixed, so that
+diversity varies without sample size varying.
 Action-target recovery improves markedly with regime diversity ($F_1$
 from $0.57$ with a single regime to $0.89$ with four or more), in line
 with the identifiability role of interventional variation
@@ -773,11 +982,20 @@ planning numbers as preliminary.
 
 \section{Conclusion}\label{sec:conclusion}
 
-We introduced CAIRN, a world model that couples a causally factored
+This paper began with a robot whose failing wrist bearing left no trace
+in its own world model, and asked what it would take for that sentence
+to become impossible. The answer we have defended is architectural: give
+every latent variable its own mechanism over a learned sparse parent
+set, treat actions and shocks as surgery on those mechanisms, and make
+each mechanism carry the statistical means to convict itself. We
+introduced CAIRN, a world model that couples a causally factored
 transition kernel with per-mechanism anytime-valid betting martingales,
 and showed that the joint construction produces a qualitatively new
 capability: a model that degrades \emph{locally and detectably} under
-mechanism shifts instead of globally and silently. The e-gate's
+mechanism shifts instead of globally and silently. Neither half suffices
+alone---the ablations show that the statistical machinery without
+structure cannot even detect localized shifts at realistic tolerances,
+while structure without monitoring fails as silently as any monolith. The e-gate's
 guarantees are simple, tuning-free, and---with conformal PIT
 recalibration and a tolerance null---hold for learned mechanisms rather
 than only in theory; on the ground-truth benchmark the gates achieved
@@ -786,6 +1004,46 @@ where oracle-tuned classical detectors and ensembles fail in one
 direction or the other. Evidence-triggered adaptation repaired exactly
 the broken mechanisms without interference, and evidence-proportional
 inflation kept imagined futures honest while stale.
+
+The road from the diagnostic benchmark to physical instantiations is
+short, and the ingredients are already in place
+(Figure~\ref{fig:realdata}). The actuator-damage scenario that our
+benchmark abstracts---one mechanism silently losing its gain---is
+literally available in standard robotic simulators: the top panel of
+Figure~\ref{fig:realdata} shows an episode of the DeepMind Control
+walker \citep{tassa2018deepmind} in which the right-knee actuator loses
+$95\%$ of its torque mid-episode, visible in the collapse of exactly one
+proprioceptive trace while its left counterpart keeps full range; each
+such trace is precisely what one CAIRN mechanism would own, and the
+asymmetry between them is precisely what the e-gates detect and
+localize. For pixel-based deployment the bottom panel demonstrates the
+frozen-encoder pathway on real street video from the KITTI dataset
+\citep{geiger2013vision}: pushing every frame through a frozen DINOv2
+encoder \citep{oquab2024dinov2} and projecting to a few principal
+components yields a smooth, low-dimensional latent stream extracted from
+raw video with no training at all, and it is over such streams---exactly
+as over the proprioceptive ones---that the factored mechanisms and their
+gates operate unchanged. Real-robot trajectory corpora such as DROID
+\citep{khazatsky2024droid} then provide the natural testbed for offline
+evaluation of PIT validity and calibration on real data.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/walker_strip.jpg}\\[4pt]
+\includegraphics[width=\textwidth]{figures/kitti_strip.jpg}
+\caption{The road to physical instantiations, illustrated with real
+data processed by our pipeline. Top: a DeepMind Control walker episode
+in which the right-knee actuator silently loses $95\%$ of its torque at
+the dashed line; one proprioceptive trace collapses while the others
+keep their range---a one-mechanism shift in the wild, and exactly the
+signature the e-gates localize. Bottom: real street video (KITTI)
+processed by the frozen-encoder pathway of Section~\ref{sec:model}:
+camera frames, the vehicle's measured state stream, and the first three
+principal components of frozen DINOv2 features per frame---a smooth
+latent state stream obtained from raw video without any training, over
+which CAIRN's mechanisms and gates operate unchanged.}
+\label{fig:realdata}
+\end{figure}
 
 Several limitations bound these claims, and we state them together with
 the conclusions they qualify. The primary instantiation is in state

@@ -29,3 +29,10 @@ Schölkopf et al. (2021) pages 612–634; Shafer–Vovk (2019) Wiley DOI.
 
 No reference was fabricated: every entry corresponds to a real work the
 manuscript genuinely draws on.
+
+Added in revision (verify metadata): `sutton1991dyna` (SIGART Bulletin
+pages 160–163), `deisenroth2011pilco` (ICML 2011 pages 465–472),
+`hafner2019planet` (ICML 2019; arXiv DOI, author list from arXiv API),
+`peters2016invariant` (JRSS-B 78(5):947–1012), `bengio2020meta`
+(ICLR 2020; author list from arXiv API), `page1954continuous`
+(Biometrika 41:100–115), `vovk2005algorithmic` (Springer DOI 10.1007/b106715).
