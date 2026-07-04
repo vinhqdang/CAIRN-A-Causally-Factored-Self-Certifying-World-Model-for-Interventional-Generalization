@@ -67,10 +67,11 @@ graph itself. We prove that each gate controls its false-alarm probability
 uniformly over time under a composite null that absorbs the quantile
 approximation error of learned mechanisms, and we bound its detection
 delay. On a ground-truth causal benchmark, CAIRN detects unannounced
-single-mechanism shifts within a median of eighteen steps at a measured
-false-alarm rate of zero, localizes the shifted mechanism with an $F_1$ of
-$0.97$ where an oracle-tuned CUSUM reaches $0.68$ and ensemble
-disagreement $0.28$, adapts without any interference on healthy
+single-mechanism shifts within a median of seventeen steps at a measured
+false-alarm rate of zero across three independent benchmark seeds,
+localizes the shifted mechanism with an $F_1$ of $0.90\pm0.07$ where an
+oracle-tuned CUSUM reaches $0.69\pm0.12$ and ensemble disagreement
+$0.29\pm0.06$, adapts without any interference on healthy
 mechanisms where full fine-tuning catastrophically degrades them, and
 keeps rollout intervals calibrated before, during, and after the shift.}
 
@@ -649,22 +650,24 @@ in-degree two.}\label{fig:graph}
 
 \subsection{Detection and localization (RQ2)}\label{sec:rq2}
 
-Table~\ref{tab:rq2} contains the headline result.
-Figure~\ref{fig:egate} shows a representative episode. Across ten
-unannounced shift scenarios (eight single-mechanism sign flips and two
-two-mechanism shifts), the e-gates detect the shifted mechanisms with a
-median delay of eighteen steps and localize them with a mean $F_1$ of
-$0.97$; over three $6{,}000$-step stationary null streams they raise
-\emph{zero} false alarms, consistent with (and conservatively below) the
-guarantee of Proposition~\ref{prop:validity}, which the exact-null
-verification confirms independently at an alarm fraction of $0.0000$.
-The comparison detectors illustrate both classical failure modes.
-Oracle-tuned CUSUM is sometimes instantaneous but wildly inconsistent:
-its thresholds, tuned to zero false alarms on one null stream, produce a
-$0.42$ per-gate false-alarm fraction on fresh null streams, and its
-localization $F_1$ of $0.68$ mixes perfect scenarios with complete
-misses. Ensemble disagreement fires quickly but names the wrong
-variables ($F_1=0.28$) and false-alarms on half the gates. The global
+Table~\ref{tab:rq2} contains the headline result, aggregated over
+three independent benchmark seeds (fresh graphs, mechanisms, and data
+per seed); Figure~\ref{fig:egate} shows a representative episode.
+Across ten unannounced shift scenarios per seed (eight single-mechanism
+sign flips and two two-mechanism shifts), the e-gates detect the shifted
+mechanisms with a median delay of $17.2\pm0.6$ steps and localize them
+with an $F_1$ of $0.90\pm0.07$; over three $6{,}000$-step stationary
+null streams per seed they raise \emph{zero} false alarms on every
+seed, consistent with (and conservatively below) the guarantee of
+Proposition~\ref{prop:validity}, which the exact-null verification
+confirms independently at an alarm fraction of $0.0000$. The comparison
+detectors illustrate both classical failure modes. Oracle-tuned CUSUM is
+sometimes instantaneous but wildly inconsistent: its thresholds, tuned
+to zero false alarms on one null stream, produce a $0.50\pm0.09$
+per-gate false-alarm fraction on fresh null streams, and its
+localization $F_1$ of $0.69\pm0.12$ mixes perfect scenarios with
+complete misses. Ensemble disagreement names the wrong variables
+($F_1=0.29\pm0.06$) and false-alarms on half the gates. The global
 e-gate on the monolithic model---the ablation that removes
 structure---is the starkest contrast: running at the same tolerance, it
 never detects any of the ten shifts within the $900$-step window,
@@ -795,8 +798,10 @@ compromise, and both are stated on the tin. On raw long-horizon rollout
 accuracy the causal factorization brought no advantage in our
 multi-attractor benchmark, and the planning gains after adaptation,
 while directionally consistent, need many more evaluation episodes.
-Finally, all reported numbers come from a single benchmark seed;
-multi-seed confidence intervals, the robotic instantiations on
+Finally, the detection and localization results are aggregated over
+three independent benchmark seeds, while the remaining research
+questions report a single seed; full multi-seed intervals for every
+question, the robotic instantiations on
 CausalWorld and the DeepMind Control suite
 \citep{ahmed2021causalworld,tassa2018deepmind}, offline PIT-validity
 evaluation on real robot trajectories from DROID

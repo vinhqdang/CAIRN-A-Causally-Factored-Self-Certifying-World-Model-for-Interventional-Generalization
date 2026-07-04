@@ -85,27 +85,41 @@ Targets & Model & $h{=}1$ & $h{=}3$ & $h{=}5$ & desc.\ & non-desc.\ & ref.\\
 
 
 def rq2_tables():
-    r = load("rq2.json")
+    import glob as _glob
+    import numpy as np
+    seeds = sorted(_glob.glob(os.path.join(RESULTS, "rq2*.json")))
+    rs = [json.load(open(f)) for f in seeds]
+    r = rs[0]
+    n_seeds = len(rs)
+
+    def agg(path):
+        vals = []
+        for rr in rs:
+            v = rr
+            for k in path:
+                v = v[k]
+            vals.append(v)
+        m, sd = float(np.mean(vals)), float(np.std(vals))
+        return f"{m:.3f} $\\pm$ {sd:.3f}" if n_seeds > 1 else f"{m:.3f}"
+
     null_rows = []
     order = ["egate", "egate_oracle_graph", "cusum", "ensemble"]
     for det in order:
-        v = r["null"][det]
-        d = r["detectors"][det]
         null_rows.append(
-            f"{DET_LABELS[det]} & {v['alarm_fraction']:.3f} & "
-            f"{d['median_delay']:.0f} & {d['localization_f1']:.3f} & "
-            f"{d['localization_precision']:.3f} & "
-            f"{d['localization_recall']:.3f} \\\\")
-    glob = r["null"]["global_egate"]["alarm_fraction"]
-    gdelay = r["global_egate_median_delay"]
+            f"{DET_LABELS[det]} & "
+            f"{agg(['null', det, 'alarm_fraction'])} & "
+            f"{agg(['detectors', det, 'median_delay'])} & "
+            f"{agg(['detectors', det, 'localization_f1'])} \\\\")
+    glob = agg(["null", "global_egate", "alarm_fraction"])
+    gdelay = agg(["global_egate_median_delay"])
     null_rows.append(
-        rf"Global e-gate (monolithic) & {glob:.3f}$^{{\ast}}$ & "
-        rf"{gdelay:.0f} & \multicolumn{{3}}{{c}}{{undefined (no "
-        rf"localization)}} \\")
+        rf"Global e-gate (monolithic) & {glob}$^{{\ast}}$ & "
+        rf"{gdelay} & undefined \\")
     write("rq2.tex", r"""\begin{table}[t]
-\caption{Detection and localization (RQ2), aggregated over ten unannounced
-mechanism-shift scenarios and three $6{,}000$-step stationary null streams
-at level $\delta=0.05$. The e-gates run with no tuning; CUSUM and ensemble
+\caption{Detection and localization (RQ2): mean $\pm$ standard deviation
+over """ + str(n_seeds) + r""" independent benchmark seeds, each aggregating
+ten unannounced mechanism-shift scenarios and three $6{,}000$-step
+stationary null streams at level $\delta=0.05$. The e-gates run with no tuning; CUSUM and ensemble
 thresholds receive oracle tuning on a separate null stream. The exact-null
 verification (gates fed probability integral transforms from the true
 environment conditional) produced an alarm fraction of
@@ -113,9 +127,9 @@ $""" + f"{r['oracle_null_alarm_fraction']:.4f}" + r"""$, consistent with
 Proposition~\ref{prop:validity}. $^{\ast}$per stream rather than per gate.}
 \label{tab:rq2}
 \small\setlength{\tabcolsep}{4pt}%
-\begin{tabular}{lccccc}
+\begin{tabular}{lccc}
 \toprule
-Detector & Null alarms & Med.\ delay & Loc.\ $F_1$ & Prec.\ & Rec.\\
+Detector & Null alarm fraction & Median delay & Localization $F_1$\\
 \midrule
 """ + "\n".join(null_rows) + r"""
 \botrule
