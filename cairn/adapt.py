@@ -25,7 +25,9 @@ class OnlineAdapter:
                  refit_epochs: int = 300, refit_lr: float = 5e-3,
                  min_refit_samples: int = 24,
                  repair: bool = True, repair_after_alarms: int = 2,
-                 adapt: bool = True):
+                 adapt: bool = True,
+                 maintain: bool = False, recal_every: int = 400,
+                 recal_window: int = 600, recal_quiet_logw: float = 1.5):
         self.model = model
         self.buffer: deque = deque(maxlen=buffer_size)
         self.refit_epochs = refit_epochs
@@ -34,6 +36,19 @@ class OnlineAdapter:
         self.repair = repair
         self.repair_after_alarms = repair_after_alarms
         self.adapt = adapt
+        # Sliding-holdout maintenance (algorithm.md 2.3): periodically refit
+        # each *gate-quiet* node's PIT recalibrator on the recent window and
+        # restart its gate, so slow approximation-error drift cannot
+        # accumulate wealth indefinitely.  Each maintenance window is then an
+        # exact level-delta e-process.  A truly shifted node's wealth rises
+        # immediately past the quiet threshold, blocking absorption, so
+        # detection power is untouched (slow sub-threshold drifts can be
+        # absorbed — a documented limitation of any adaptive monitor).
+        self.maintain = maintain
+        self.recal_every = recal_every
+        self.recal_quiet_logw = recal_quiet_logw
+        self.raw_pits = [deque(maxlen=recal_window) for _ in range(model.d)]
+        self.recal_log: list[tuple[int, int]] = []
         self.alarm_counts = [0] * model.d
         self.alarm_log: list[tuple[int, int]] = []   # (step, node)
         self.repair_log: list[tuple[int, int]] = []
@@ -58,7 +73,26 @@ class OnlineAdapter:
             for i in sorted(self._pending):
                 self.handle_alarm(i)
             self._pending.clear()
+        if self.maintain:
+            for i in range(self.model.d):
+                self.raw_pits[i].append(self.model._last_raw_pits[i])
+            if self._step % self.recal_every == 0:
+                self._maintenance_recal()
         return alarms
+
+    def _maintenance_recal(self) -> None:
+        import torch as _torch
+        from cairn.quantile import PitCalibrator
+        for i in range(self.model.d):
+            gate = self.model.gates.active(i)
+            if (gate.alarmed
+                    or gate.log_wealth >= self.recal_quiet_logw
+                    or len(self.raw_pits[i]) < 100):
+                continue
+            u = _torch.tensor(list(self.raw_pits[i]))
+            self.model.calibrators[i] = PitCalibrator().fit(u)
+            gate.reset()
+            self.recal_log.append((self._step, i))
 
     # ------------------------------------------------------------------ #
 
@@ -73,22 +107,41 @@ class OnlineAdapter:
         new_mech, dropped = self.model.libraries[i].spawn()
         self.few_shot_fit(i, new_mech)
         self.model.gates.add_member(i, dropped)  # fresh wealth, kept in sync
+        self._recalibrate_node(i)
 
     def few_shot_fit(self, i: int, mech, a_col=None) -> float:
-        """Fit one spawned mechanism on the recent window (few-shot by
-        construction: f_i is small and its parent set sparse)."""
+        """Fit one spawned mechanism on the earlier 3/4 of the recent window
+        (few-shot by construction: f_i is small and its parent set sparse);
+        the held-out tail is reserved for PIT recalibration so the fresh
+        gate's guarantee holds on data not used for fitting (the sliding
+        holdout buffer of algorithm.md 2.3)."""
         z, a, zn = self._buffer_tensors()
+        split = max(int(0.75 * z.shape[0]), 1)
         A, M = self.model.structure.hard_masks()
         a_col = A[:, i] if a_col is None else a_col
         opt = torch.optim.Adam(mech.parameters(), lr=self.refit_lr)
         for _ in range(self.refit_epochs):
             opt.zero_grad()
-            q = mech(z, a, a_col, M[:, i])
-            loss = pinball_loss(q, zn[:, i])
+            q = mech(z[:split], a[:split], a_col, M[:, i])
+            loss = pinball_loss(q, zn[:split, i])
             loss.backward()
             opt.step()
         with torch.no_grad():
             return float(pinball_loss(mech(z, a, a_col, M[:, i]), zn[:, i]))
+
+    def _recalibrate_node(self, i: int) -> None:
+        """Refit node i's PIT recalibrator on the held-out tail of the
+        buffer, against the post-spawn mixture predictive distribution."""
+        from cairn.quantile import PitCalibrator, pit_value
+        z, a, zn = self._buffer_tensors()
+        split = max(int(0.75 * z.shape[0]), 1)
+        if z.shape[0] - split < 8:
+            return
+        with torch.no_grad():
+            q = self.model.predict_quantiles(z[split:], a[split:],
+                                             hard=True, use_mixture=True)
+            u = pit_value(q[:, i], zn[split:, i])
+        self.model.calibrators[i] = PitCalibrator().fit(u)
 
     # ------------------------------------------------------------------ #
 

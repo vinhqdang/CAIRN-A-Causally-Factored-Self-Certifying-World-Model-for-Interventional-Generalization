@@ -61,10 +61,15 @@ class SyntheticDBN:
                 M[k, i] = 1
         # Ensure every action targets at least one node.
         self.M_true = M
-        # Mechanism parameters.
+        # Mechanism parameters.  Edge weights are bounded away from zero:
+        # a near-zero-weight "edge" is unidentifiable from finite data in
+        # any method and would make structure-recovery scores ill-posed
+        # (standard practice in causal-discovery benchmarks).
         self.rho = rng.uniform(0.55, 0.75, size=d)
-        self.W = rng.normal(0.0, 0.9, size=(d, d)) * A          # parent gains
-        self.C = rng.normal(0.0, 1.0, size=(m, d)) * M          # action gains
+        self.W = (rng.uniform(0.4, 1.2, size=(d, d))
+                  * rng.choice([-1.0, 1.0], size=(d, d))) * A   # parent gains
+        self.C = (rng.uniform(0.5, 1.5, size=(m, d))
+                  * rng.choice([-1.0, 1.0], size=(m, d))) * M   # action gains
         self.b = rng.normal(0.0, 0.2, size=d)
         self.rng = rng
 

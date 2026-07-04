@@ -12,7 +12,7 @@ import torch.nn as nn
 
 from cairn.egate import GateBank
 from cairn.mechanisms import MechanismMLP, NodeLibrary
-from cairn.quantile import (MEDIAN_IDX, N_TAUS, pit_value,
+from cairn.quantile import (MEDIAN_IDX, N_TAUS, PitCalibrator, pit_value,
                             sample_from_quantiles)
 from cairn.structure import GumbelStructure
 
@@ -44,6 +44,8 @@ class CairnWorldModel(nn.Module):
         self.libraries = [NodeLibrary(f, beta=beta)
                           for f in self.base_mechanisms]
         self.gates = GateBank(d, delta)
+        self.calibrators: list[PitCalibrator | None] = [None] * d
+        self._last_raw_pits: list[float] = [0.5] * d
 
     # ------------------------------------------------------------------ #
     # Prediction                                                          #
@@ -184,10 +186,28 @@ class CairnWorldModel(nn.Module):
         q = self.predict_quantiles(z.unsqueeze(0), a.unsqueeze(0),
                                    hard=True, use_mixture=True)[0]
         alarms = []
+        self._last_raw_pits = [0.0] * self.d
         for i in range(self.d):
-            u = pit_value(q[i], z_next[i], generator=generator).item()
+            u_raw = pit_value(q[i], z_next[i], generator=generator).item()
+            self._last_raw_pits[i] = u_raw
+            u = u_raw
+            if self.calibrators[i] is not None:
+                u = self.calibrators[i].transform(u, generator=generator)
             fired_before = self.gates.active(i).alarmed
             fired = self.gates.active(i).update(u)
             if fired and not fired_before:
                 alarms.append(i)
         return alarms
+
+    @torch.no_grad()
+    def calibrate_pits(self, z: torch.Tensor, a: torch.Tensor,
+                       z_next: torch.Tensor,
+                       generator: torch.Generator | None = None) -> None:
+        """Fit per-node PIT recalibrators on held-out data not used for
+        fitting (the train/monitor separation of algorithm.md 2.3): the
+        e-gate null then holds exactly despite quantile-head approximation
+        error."""
+        q = self.predict_quantiles(z, a, hard=True, use_mixture=True)
+        for i in range(self.d):
+            u = pit_value(q[:, i], z_next[:, i], generator=generator)
+            self.calibrators[i] = PitCalibrator().fit(u)

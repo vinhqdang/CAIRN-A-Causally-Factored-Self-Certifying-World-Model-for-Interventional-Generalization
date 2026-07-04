@@ -94,6 +94,34 @@ def pit_value(quantiles: torch.Tensor, target: torch.Tensor,
     return u.clamp(1e-6, 1.0 - 1e-6)
 
 
+class PitCalibrator:
+    """Conformal recalibration of PIT values (algorithm.md section 6: the
+    conformalized-quantile variant restoring exact finite-sample PIT
+    validity).
+
+    Fit on held-out calibration PITs; ``transform`` maps a new PIT through
+    the randomized empirical CDF, which is exactly Unif(0,1) under
+    exchangeability with the calibration set — so the e-gate's null holds
+    exactly even when the quantile head is slightly miscalibrated."""
+
+    def __init__(self):
+        self.sorted_u: torch.Tensor | None = None
+
+    def fit(self, u_cal: torch.Tensor) -> "PitCalibrator":
+        self.sorted_u = torch.sort(u_cal.flatten()).values
+        return self
+
+    def transform(self, u: float,
+                  generator: torch.Generator | None = None) -> float:
+        if self.sorted_u is None:
+            return u
+        n = len(self.sorted_u)
+        rank = int(torch.searchsorted(self.sorted_u,
+                                      torch.tensor(u)).item())
+        r = torch.rand((), generator=generator).item()
+        return min(max((rank + r) / (n + 1), 1e-6), 1 - 1e-6)
+
+
 def sample_from_quantiles(quantiles: torch.Tensor,
                           u: torch.Tensor | None = None,
                           inflation: torch.Tensor | float = 1.0,

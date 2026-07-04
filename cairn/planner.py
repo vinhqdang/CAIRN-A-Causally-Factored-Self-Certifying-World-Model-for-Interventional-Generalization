@@ -55,9 +55,11 @@ class CEMPlanner:
         P = cand.shape[0]
         actions = cand.permute(1, 0, 2)                     # (H, P, m)
         z0 = z.unsqueeze(0).expand(P, self.model.d)
+        kw = {"inflate": self.inflate} if hasattr(
+            self.model, "node_inflation") else {}
         samples = self.model.rollout(
             z0, actions, n_samples=self.n_rollout_samples,
-            inflate=self.inflate, generator=generator)      # (S, H, P, d)
+            generator=generator, **kw)                      # (S, H, P, d)
         rewards = self.reward_fn(samples).sum(dim=1)        # (S, P)
         k = max(1, int(self.cvar_alpha * rewards.shape[0]))
         worst, _ = rewards.topk(k, dim=0, largest=False)

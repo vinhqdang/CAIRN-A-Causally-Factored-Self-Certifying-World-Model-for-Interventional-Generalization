@@ -24,9 +24,9 @@ class TrainConfig:
     seg_batch: int = 64
     seg_len: int = 4
     lr_mech: float = 2e-3
-    lr_struct: float = 5e-3           # slower *effective* timescale via
+    lr_struct: float = 8e-3           # slower *effective* timescale via
     struct_delay: int = 300           # delayed start + temperature anneal
-    gamma_sparsity: float = 2e-3
+    gamma_sparsity: float = 1e-3
     gamma_int: float = 1.0
     gamma_inv: float = 1e-3
     gamma_cal: float = 0.3

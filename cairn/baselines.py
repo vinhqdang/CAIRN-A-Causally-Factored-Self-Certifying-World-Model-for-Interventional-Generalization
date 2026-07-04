@@ -72,7 +72,7 @@ def train_monolithic(model: MonolithicWM, episodes, steps: int = 4000,
         loss = pinball_loss(q, data["z_next"][idx])
         opt.zero_grad(); loss.backward(); opt.step()
         if verbose and step % 1000 == 0:
-            print(f"  monolithic step={step} pin={float(loss):.4f}",
+            print(f"  monolithic step={step} pin={loss.item():.4f}",
                   flush=True)
     return model
 
@@ -130,6 +130,16 @@ class GlobalEGate:
     def __init__(self, model, delta: float = 0.05):
         self.model = model
         self.gate = EGate(delta)
+        self.calibrators = [None] * model.d
+
+    @torch.no_grad()
+    def calibrate(self, z, a, z_next, generator=None) -> None:
+        """Same conformal PIT recalibration granted to CAIRN's gates."""
+        from cairn.quantile import PitCalibrator
+        q = self.model.predict_quantiles(z, a)
+        for i in range(self.model.d):
+            u = pit_value(q[:, i], z_next[:, i], generator=generator)
+            self.calibrators[i] = PitCalibrator().fit(u)
 
     @torch.no_grad()
     def observe(self, z, a, z_next, generator=None) -> bool:
@@ -137,6 +147,8 @@ class GlobalEGate:
         fired = False
         for i in range(q.shape[0]):
             u = pit_value(q[i], z_next[i], generator=generator).item()
+            if self.calibrators[i] is not None:
+                u = self.calibrators[i].transform(u, generator=generator)
             fired = self.gate.update(u) or fired
         return fired
 
