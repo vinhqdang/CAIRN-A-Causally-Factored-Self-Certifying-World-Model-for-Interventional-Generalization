@@ -64,23 +64,35 @@ def main():
     if rq1:
         parts.append("## RQ1 — Interventional generalization\n")
         parts.append(
-            "Held-out do-interventions (values outside the training "
-            "range) on every node; rollout error of the model-mean "
-            "trajectory against the true conditional mean (RMSE), plus "
-            "the structural split at horizon 5: error on descendants vs "
-            "non-descendants of the intervened node, with the "
-            "no-intervention reference for the non-descendant set.\n")
-        header = ["Model", "h=1", "h=3", "h=5", "h=10",
-                  "desc@5", "non-desc@5", "non-desc@5 (no-do ref)"]
-        rows = []
-        for name, rec in rq1["models"].items():
-            r = rec["rmse_by_horizon"]
-            rows.append([MODEL_LABELS.get(name, name),
-                         fmt(r[0]), fmt(r[2]), fmt(r[4]), fmt(r[9]),
-                         fmt(rec["desc_rmse"]["5"]),
-                         fmt(rec["nondesc_rmse"]["5"]),
-                         fmt(rec["nondesc_rmse_no_intervention"]["5"])])
-        parts.append(table(header, rows))
+            f"Training interventions were restricted to nodes "
+            f"{rq1.get('do_train_nodes')}; **held-out** rows evaluate "
+            "do-queries on nodes never intervened during training "
+            "(compositional interventional generalization), **trained** "
+            "rows evaluate do-targets seen in training (with held-out "
+            "values).  Rollout error of the model-mean trajectory against "
+            "the true conditional mean (RMSE), plus the structural split "
+            "at horizon 5: error on descendants vs non-descendants of the "
+            "intervened node, with the no-intervention reference for the "
+            "non-descendant set.\n")
+        for group, label in [("heldout", "Held-out do-targets"),
+                             ("trained", "Trained do-targets")]:
+            if not any(group in rec for rec in rq1["models"].values()):
+                continue
+            parts.append(f"**{label}:**\n")
+            header = ["Model", "h=1", "h=3", "h=5", "h=10",
+                      "desc@5", "non-desc@5", "non-desc@5 (no-do ref)"]
+            rows = []
+            for name, by_group in rq1["models"].items():
+                rec = by_group.get(group)
+                if not rec:
+                    continue
+                r = rec["rmse_by_horizon"]
+                rows.append([MODEL_LABELS.get(name, name),
+                             fmt(r[0]), fmt(r[2]), fmt(r[4]), fmt(r[9]),
+                             fmt(rec["desc_rmse"]["5"]),
+                             fmt(rec["nondesc_rmse"]["5"]),
+                             fmt(rec["nondesc_rmse_no_intervention"]["5"])])
+            parts.append(table(header, rows))
 
     rq2 = load("rq2.json")
     if rq2:

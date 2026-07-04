@@ -17,7 +17,8 @@ import time
 import numpy as np
 import torch
 
-from common import (D, DELTA, M, RESULTS_DIR, build_dataset, build_env,
+from common import (D, DELTA, DO_TRAIN_NODES, M, RESULTS_DIR,
+                    build_dataset, build_env,
                     make_cairn, model_mean_rollout,
                     refit_for_deployment, refit_monolithic_for_deployment,
                     save_json, standardized_residual_stats, train_zoo,
@@ -86,15 +87,19 @@ def run_rq1(env, zoo, seed=0, H=10, do_values=(-2.0, 2.0)):
     horizons = [1, 3, 5, 10]
     eval_models = ["cairn", "cairn_noinv", "cairn_oracle", "monolithic",
                    "ensemble"]
-    per_model = {name: {"sq": np.zeros((H, env.d)), "n": 0,
-                        "desc": {h: [] for h in horizons},
-                        "nondesc": {h: [] for h in horizons},
-                        "nondesc_ref": {h: [] for h in horizons}}
+    groups = ["heldout", "trained"]
+    per_model = {name: {g: {"sq": np.zeros((H, env.d)), "n": 0,
+                            "desc": {h: [] for h in horizons},
+                            "nondesc": {h: [] for h in horizons},
+                            "nondesc_ref": {h: [] for h in horizons}}
+                        for g in groups}
                  for name in eval_models if name in zoo}
-    cases = [(i, v) for i in range(env.d) for v in do_values]
+    heldout_nodes = [i for i in range(env.d) if i not in DO_TRAIN_NODES]
+    cases = [(i, v, "heldout") for i in heldout_nodes for v in do_values]
+    cases += [(i, v, "trained") for i in DO_TRAIN_NODES for v in do_values]
     if SMOKE:
         cases = cases[:3]
-    for ci, (i, v) in enumerate(cases):
+    for ci, (i, v, group) in enumerate(cases):
         z0 = rng.normal(0, 0.5, env.d)
         actions = _smooth_actions(rng, H, env.m)
         do_mask = np.zeros(env.d); do_mask[i] = 1.0
@@ -108,35 +113,41 @@ def run_rq1(env, zoo, seed=0, H=10, do_values=(-2.0, 2.0)):
         desc = sorted(desc)
         for name in per_model:
             model = zoo[name]
+            acc = per_model[name][group]
             pred_do = model_mean_rollout(model, z0, actions, H,
                                          do_mask, do_val, seed=seed + ci)
             pred_ref = model_mean_rollout(model, z0, actions, H,
                                           seed=seed + ci)
             err = (pred_do - true_do) ** 2
-            per_model[name]["sq"] += err
-            per_model[name]["n"] += 1
+            acc["sq"] += err
+            acc["n"] += 1
             for h in horizons:
-                per_model[name]["desc"][h].append(
+                acc["desc"][h].append(
                     float(np.sqrt(err[h - 1, desc].mean())))
                 if nondesc:
-                    per_model[name]["nondesc"][h].append(
+                    acc["nondesc"][h].append(
                         float(np.sqrt(err[h - 1, nondesc].mean())))
-                    per_model[name]["nondesc_ref"][h].append(float(np.sqrt(
+                    acc["nondesc_ref"][h].append(float(np.sqrt(
                         ((pred_ref - true_ref) ** 2)[h - 1, nondesc].mean())))
-    out = {"horizons": list(range(1, H + 1)), "models": {}}
-    for name, acc in per_model.items():
-        rmse_h = np.sqrt(acc["sq"].mean(axis=1) / acc["n"])
-        out["models"][name] = {
-            "rmse_by_horizon": rmse_h.tolist(),
-            "desc_rmse": {h: float(np.mean(vs))
-                          for h, vs in acc["desc"].items()},
-            "nondesc_rmse": {h: float(np.mean(vs))
-                             for h, vs in acc["nondesc"].items()},
-            "nondesc_rmse_no_intervention": {
-                h: float(np.mean(vs))
-                for h, vs in acc["nondesc_ref"].items()},
-        }
-        print(f"  {name}: rmse@h10={rmse_h[-1]:.4f}", flush=True)
+    out = {"horizons": list(range(1, H + 1)),
+           "do_train_nodes": DO_TRAIN_NODES, "models": {}}
+    for name, by_group in per_model.items():
+        out["models"][name] = {}
+        for g, acc in by_group.items():
+            if acc["n"] == 0:
+                continue
+            rmse_h = np.sqrt(acc["sq"].mean(axis=1) / acc["n"])
+            out["models"][name][g] = {
+                "rmse_by_horizon": rmse_h.tolist(),
+                "desc_rmse": {h: float(np.mean(vs))
+                              for h, vs in acc["desc"].items()},
+                "nondesc_rmse": {h: float(np.mean(vs))
+                                 for h, vs in acc["nondesc"].items()},
+                "nondesc_rmse_no_intervention": {
+                    h: float(np.mean(vs))
+                    for h, vs in acc["nondesc_ref"].items()},
+            }
+            print(f"  {name}[{g}]: rmse@h10={rmse_h[-1]:.4f}", flush=True)
     return out
 
 

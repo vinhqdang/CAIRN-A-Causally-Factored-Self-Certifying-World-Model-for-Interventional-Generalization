@@ -112,6 +112,7 @@ class SyntheticDBN:
                          action_scale: float = 1.0,
                          p_do: float = 0.0,
                          do_low: float = -1.5, do_high: float = 1.5,
+                         do_nodes: list[int] | None = None,
                          rng: np.random.Generator | None = None) -> Episode:
         """Roll one episode with random smooth actions; with probability
         ``p_do`` per step, a random single-node do-intervention is applied
@@ -128,7 +129,8 @@ class SyntheticDBN:
             a_cur = 0.8 * a_cur + 0.2 * rng.normal(0, action_scale, self.m)
             a[t] = a_cur
             if p_do > 0 and rng.random() < p_do:
-                i = rng.integers(self.d)
+                i = (rng.integers(self.d) if do_nodes is None
+                     else rng.choice(do_nodes))
                 do_mask[t, i] = 1.0
                 do_values[t, i] = rng.uniform(do_low, do_high)
             z[t + 1] = self.step(z[t], a[t], regime,
@@ -137,13 +139,18 @@ class SyntheticDBN:
 
     def generate_dataset(self, regimes: list[Regime], episodes_per_regime: int,
                          T: int, p_do: float = 0.05,
+                         do_nodes: list[int] | None = None,
                          seed: int = 1) -> list[Episode]:
+        """``do_nodes`` restricts which nodes receive labeled training
+        interventions, so evaluation can hold out do-targets entirely
+        (compositional interventional generalization)."""
         rng = np.random.default_rng(seed)
         data = []
         for rid, reg in enumerate(regimes):
             for _ in range(episodes_per_regime):
                 data.append(self.generate_episode(
-                    T, reg, regime_id=rid, p_do=p_do, rng=rng))
+                    T, reg, regime_id=rid, p_do=p_do, do_nodes=do_nodes,
+                    rng=rng))
         return data
 
 

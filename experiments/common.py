@@ -39,6 +39,11 @@ N_TRAIN_REGIMES = 4
 EPISODES_PER_REGIME = 50
 EPISODE_LEN = 100
 P_DO = 0.15
+# Training do-interventions are restricted to these nodes; RQ1 evaluates
+# do-queries on the held-out complement (compositional interventional
+# generalization: the factored model handles an unseen do-target by graph
+# surgery, a monolithic model has never seen such states).
+DO_TRAIN_NODES = [0, 1, 2, 3]
 TRAIN_STEPS = 6000
 DELTA = 0.05
 
@@ -63,7 +68,8 @@ def build_env(seed: int = 0):
 
 def build_dataset(env, regimes, seed: int = 1):
     return env.generate_dataset(regimes, EPISODES_PER_REGIME, EPISODE_LEN,
-                                p_do=P_DO, seed=seed)
+                                p_do=P_DO, do_nodes=DO_TRAIN_NODES,
+                                seed=seed)
 
 
 def make_cairn(seed: int, oracle_env=None) -> CairnWorldModel:
