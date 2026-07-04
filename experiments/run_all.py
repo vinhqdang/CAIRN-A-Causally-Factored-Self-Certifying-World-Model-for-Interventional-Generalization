@@ -208,7 +208,7 @@ def _make_monitor(model):
     adaptation (pure detection, so alarms are observable)."""
     return OnlineAdapter(copy.deepcopy(model), adapt=False, repair=False,
                          maintain=True,
-                         recal_every=100 if SMOKE else 400)
+                         recal_every=100 if SMOKE else 300)
 
 
 def run_rq2(env, zoo, seed=0):

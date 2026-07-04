@@ -33,7 +33,7 @@ class CairnWorldModel(nn.Module):
     """
 
     def __init__(self, d: int, m: int, hidden: int = 48, delta: float = 0.05,
-                 gate_eps: float = 0.15,
+                 gate_eps: float = 0.3,
                  beta: float = 1.0, inflation_scale: float = 1.0):
         super().__init__()
         self.d, self.m = d, m

@@ -16,8 +16,9 @@ def test_repair_restores_deleted_parent():
     env = SyntheticDBN(d=5, m=2, extra_parents=1, sigma=0.2, seed=4)
     episodes = env.generate_dataset([Regime()], 30, 80, p_do=0.0, seed=2)
 
-    # Oracle-structure model, trained on nominal data only.
-    model = CairnWorldModel(d=5, m=2, hidden=32)
+    # Oracle-structure model, trained on nominal data only.  A tighter gate
+    # tolerance suits this small, well-trained setup.
+    model = CairnWorldModel(d=5, m=2, hidden=32, gate_eps=0.1)
     with torch.no_grad():
         model.structure.logits_A.copy_(
             torch.tensor(env.A_true, dtype=torch.float32) * 12 - 6)

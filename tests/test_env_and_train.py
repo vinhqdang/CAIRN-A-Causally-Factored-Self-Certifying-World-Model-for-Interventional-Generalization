@@ -42,7 +42,7 @@ def test_adapter_spawns_and_improves_after_shift():
     regimes = default_regimes(env, 2, seed=1)
     episodes = env.generate_dataset(regimes, episodes_per_regime=8, T=60,
                                     p_do=0.0, seed=2)
-    model = CairnWorldModel(d=5, m=2, hidden=24)
+    model = CairnWorldModel(d=5, m=2, hidden=24, gate_eps=0.1)
     train_cairn(model, episodes,
                 TrainConfig(steps=600, batch=128, seg_batch=16, seg_len=3,
                             log_every=300, seed=0), verbose=False)

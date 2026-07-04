@@ -26,8 +26,8 @@ class OnlineAdapter:
                  min_refit_samples: int = 24,
                  repair: bool = True, repair_after_alarms: int = 2,
                  adapt: bool = True,
-                 maintain: bool = False, recal_every: int = 400,
-                 recal_window: int = 600, recal_quiet_logw: float = 1.5):
+                 maintain: bool = False, recal_every: int = 300,
+                 recal_window: int = 600, recal_quiet_logw: float = 2.0):
         self.model = model
         self.buffer: deque = deque(maxlen=buffer_size)
         self.refit_epochs = refit_epochs
