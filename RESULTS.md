@@ -40,18 +40,18 @@ Null-stream alarm fractions (learned models):
 | egate | 0.000 | per-gate |
 | egate_oracle_graph | 0.000 | per-gate |
 | ensemble | 0.500 | per-gate |
-| global_egate | 0.667 | per-stream |
+| global_egate | 0.000 | per-stream |
 
 Shift scenarios (unannounced single/double-mechanism shifts; delay in steps, localization over the alarmed set within 300 steps):
 
 | Detector | Median delay | Mean delay | Loc. F1 | Loc. precision | Loc. recall |
 |---|---|---|---|---|---|
 | cusum | 2.0 | 181.3 | 0.680 | 0.617 | 0.800 |
-| egate | 18.0 | 25.2 | 0.967 | 0.950 | 1.000 |
+| egate | 18.0 | 25.1 | 0.967 | 0.950 | 1.000 |
 | egate_oracle_graph | 25.0 | 26.5 | 0.967 | 0.950 | 1.000 |
 | ensemble | 20.5 | 202.3 | 0.284 | 0.237 | 0.700 |
 
-Global (unlocalized) e-gate on the monolithic model: median detection delay 159.0 steps, localization undefined by construction.
+Global (unlocalized) e-gate on the monolithic model: median detection delay 900.0 steps, localization undefined by construction.
 
 *CUSUM/ensemble thresholds oracle-tuned on null streams; e-gates use delta=0.05 with no tuning. egate rows use the deployment-refit models with sliding-holdout maintenance.*
 
@@ -99,9 +99,9 @@ Under an unannounced mechanism shift (coverage of nominal 90% intervals; the *sh
 | Condition | h=1 | h=5 | h=10 | h=15 | shifted node h=1 | shifted node h=5 | shifted node h=10 | shifted node h=15 |
 |---|---|---|---|---|---|---|---|---|
 | ensemble | 0.806 | 0.759 | 0.823 | 0.785 | -- | -- | -- | -- |
-| post_adapt | 0.923 | 0.928 | 0.892 | 0.900 | -- | -- | -- | -- |
-| pre_adapt_inflated | 0.924 | 0.911 | 0.935 | 0.928 | -- | -- | -- | -- |
-| pre_adapt_no_inflation | 0.880 | 0.848 | 0.896 | 0.868 | -- | -- | -- | -- |
+| post_adapt | 0.923 | 0.928 | 0.892 | 0.900 | 0.635 | 0.771 | 0.740 | 0.802 |
+| pre_adapt_inflated | 0.924 | 0.911 | 0.935 | 0.928 | 0.771 | 0.771 | 0.938 | 0.969 |
+| pre_adapt_no_inflation | 0.880 | 0.848 | 0.896 | 0.868 | 0.417 | 0.490 | 0.792 | 0.719 |
 
 ## RQ5 — Downstream planning utility (CVaR-CEM)
 

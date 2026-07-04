@@ -12,7 +12,7 @@
       "localization_f1": 0.9666666666666666,
       "localization_precision": 0.95,
       "localization_recall": 1.0,
-      "mean_delay": 25.2,
+      "mean_delay": 25.1,
       "median_delay": 18.0
     },
     "egate_oracle_graph": {
@@ -30,7 +30,7 @@
       "median_delay": 20.5
     }
   },
-  "global_egate_median_delay": 159.0,
+  "global_egate_median_delay": 900.0,
   "note": "CUSUM/ensemble thresholds oracle-tuned on null streams; e-gates use delta=0.05 with no tuning. egate rows use the deployment-refit models with sliding-holdout maintenance.",
   "null": {
     "cusum": {
@@ -50,7 +50,7 @@
       "unit": "per-gate"
     },
     "global_egate": {
-      "alarm_fraction": 0.6666666666666666,
+      "alarm_fraction": 0.0,
       "unit": "per-stream"
     }
   },

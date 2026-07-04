@@ -666,9 +666,12 @@ localization $F_1$ of $0.68$ mixes perfect scenarios with complete
 misses. Ensemble disagreement fires quickly but names the wrong
 variables ($F_1=0.28$) and false-alarms on half the gates. The global
 e-gate on the monolithic model---the ablation that removes
-structure---detects the same shifts but nine times slower (median
-$159$ steps, since the evidence of one broken mechanism is diluted
-across the whole model) and cannot localize by construction.
+structure---is the starkest contrast: running at the same tolerance, it
+never detects any of the ten shifts within the $900$-step window,
+because the evidence of one broken mechanism among eight is diluted
+below the tolerance when averaged across the whole model. Localization
+is therefore not a bonus on top of detection; at realistic tolerances,
+per-mechanism factorization is what makes detection possible at all.
 
 \begin{figure}[t]
 \centering
@@ -728,10 +731,11 @@ metric.
 Table~\ref{tab:rq4} reports empirical coverage of nominal $90\%$ rollout
 intervals. In distribution, CAIRN's intervals are near-nominal across
 horizons where the ensemble under-covers. Under an unannounced shift and
-before any adaptation, the stale intervals lose coverage on the shifted
-variable; evidence-driven inflation \eqref{eq:inflation} restores
+before any adaptation, the stale intervals lose most of their coverage
+on the shifted variable (down to $0.42$ at horizon one against a nominal
+$0.90$); evidence-driven inflation \eqref{eq:inflation} restores
 honesty precisely there, at the cost of width, and after localized
-adaptation coverage returns without inflation doing the work
+adaptation coverage recovers substantially on the refit mechanism
 (Figure~\ref{fig:inflation}). This is the operational meaning of
 ``knowing where the imagined future is untrustworthy''.
 
