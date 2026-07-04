@@ -790,7 +790,8 @@ def main():
             print(f"== zoo cached to {cache_path} ==", flush=True)
     meta = {"d": D, "m": M, "seed": args.seed, "train_steps": args.steps,
             "A_true": env.A_true.tolist(), "M_true": env.M_true.tolist()}
-    save_json("meta.json", meta)
+    save_json("meta.json" if args.seed == 0 else
+              f"meta_seed{args.seed}.json", meta)
 
     runners = {"rq1": lambda: run_rq1(env, zoo, args.seed),
                "rq2": lambda: run_rq2(env, zoo, args.seed),
@@ -798,10 +799,11 @@ def main():
                "rq4": lambda: run_rq4(env, zoo, args.seed),
                "rq5": lambda: run_rq5(env, zoo, args.seed),
                "rq6": lambda: run_rq6(env, args.seed)}
+    suffix = "" if args.seed == 0 else f"_seed{args.seed}"
     for rq in ["rq1", "rq2", "rq3", "rq4", "rq5", "rq6"]:
         if rq in only:
             t = time.time()
-            save_json(f"{rq}.json", runners[rq]())
+            save_json(f"{rq}{suffix}.json", runners[rq]())
             print(f"[{rq} done in {time.time() - t:.0f}s]", flush=True)
     print(f"[all done in {time.time() - t0:.0f}s]", flush=True)
 
